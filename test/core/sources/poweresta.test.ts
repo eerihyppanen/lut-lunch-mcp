@@ -132,10 +132,9 @@ describe('createPowerestaSource', () => {
     ).rejects.toMatchObject({ status: 503, retryable: true });
   });
 
-  it('fails retryably when no menu is published', async () => {
+  it('treats an empty menu list (e.g. between seasons) as unpublished', async () => {
     const http: HttpClient = { getText: vi.fn(), getJson: vi.fn(() => Promise.resolve([])) };
-    await expect(
-      createPowerestaSource(http, loader()).fetchUnit('2026-10-23', '2026-10-23'),
-    ).rejects.toMatchObject({ message: 'Poweresta: no published menu', retryable: true });
+    const r = await createPowerestaSource(http, loader()).fetchUnit('2026-10-23', '2026-10-23');
+    expect(r).toEqual({ days: {}, coverage: null });
   });
 });

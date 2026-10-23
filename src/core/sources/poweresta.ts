@@ -125,7 +125,8 @@ export function createPowerestaSource(http: HttpClient, loader: CachedLoader): M
       const { value: slugs } = await loader.load('poweresta:slugs', SLUG_TTL_MS, async () =>
         pickSlugs(await http.getJson(MENUS_URL)),
       );
-      if (!slugs.length) throw new SourceError('Poweresta: no published menu', true);
+      // No published menu at all (e.g. between seasons) means nothing is published, not an outage.
+      if (!slugs.length) return UNPUBLISHED;
 
       const monday = isoWeekMonday(date);
       const week = Array.from({ length: 7 }, (_, i) => addDays(monday, i)).join(',');
