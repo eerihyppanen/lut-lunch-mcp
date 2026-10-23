@@ -36,6 +36,14 @@ describe('powerestaAllergens', () => {
     expect(a.coverage).toBe('full');
   });
 
+  it('maps fish species seen in live data to fish', () => {
+    // Seen in the week of 2026-10-26: a row listing "Alaska pollock" rather than "Fish".
+    expect(powerestaAllergens(['Alaska pollock', 'Milk'])).toMatchObject({
+      coverage: 'full',
+      contains: ['milk', 'fish'],
+    });
+  });
+
   it('downgrades a list with an unrecognised allergen name and warns', () => {
     const log = vi.spyOn(console, 'error').mockImplementation(() => {});
     const a = powerestaAllergens(['Milk', 'Mystery thickener']);

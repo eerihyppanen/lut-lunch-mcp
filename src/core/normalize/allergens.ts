@@ -16,6 +16,7 @@ const POWERESTA_NAMES: Record<string, Allergen> = {
   eggs: 'egg',
   egg: 'egg',
   fish: 'fish',
+  'alaska pollock': 'fish', // fish can be listed by species (seen in live data)
   crustaceans: 'crustaceans',
   molluscs: 'molluscs',
   peanuts: 'peanuts',
