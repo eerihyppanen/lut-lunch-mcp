@@ -90,7 +90,13 @@ export class CachedLoader {
       const failure = toSourceError(error);
       const t = this.now();
       const previous = this.store.get(key);
-      if (previous?.ok && t - previous.fetchedAt < STALE_LIMIT_MS) {
+      const canServeStale = previous?.ok === true && t - previous.fetchedAt < STALE_LIMIT_MS;
+      // Logged once per real upstream attempt; negative caching keeps this quiet in outages.
+      console.error(
+        `lut-lunch-mcp: ${key} failed: ${failure.message}` +
+          (canServeStale ? ' (serving cached copy)' : ''),
+      );
+      if (previous?.ok && canServeStale) {
         this.store.set(key, { ...previous, failedAt: t });
         return { value: previous.value as T, stale: true, fetchedAt: previous.fetchedAt };
       }

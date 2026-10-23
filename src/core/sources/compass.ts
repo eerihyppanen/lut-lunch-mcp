@@ -93,7 +93,12 @@ export function createCompassSource(http: HttpClient): MenuSource {
       const url = (language: string) => `${WEEK_URL}&date=${monday}&language=${language}`;
       const [fi, en] = await Promise.all([
         http.getJson(url('fi')),
-        http.getJson(url('en')).catch(() => null), // English is optional; Finnish names suffice
+        // English is optional; Finnish names suffice.
+        http.getJson(url('en')).catch((error: unknown) => {
+          const reason = error instanceof Error ? error.message : String(error);
+          console.error(`lut-lunch-mcp: Compass English menu failed, using Finnish: ${reason}`);
+          return null;
+        }),
       ]);
       return parseCompassWeek(fi, en, monday, today);
     },

@@ -78,6 +78,7 @@ describe('createCompassSource', () => {
   });
 
   it('fetches fi and en for the ISO week and tolerates en failure', async () => {
+    const log = vi.spyOn(console, 'error').mockImplementation(() => {});
     const urls: string[] = [];
     const http: HttpClient = {
       getText: vi.fn(),
@@ -93,6 +94,8 @@ describe('createCompassSource', () => {
       'https://www.compass-group.fi/menuapi/week-menus?costCenter=3363&date=2026-10-19&language=fi',
     ]);
     expect(r.days['2026-10-23']![0]!.name.en).toBeNull();
+    expect(log.mock.calls.map((c) => c.join(' ')).join()).toMatch(/English.*x/);
+    log.mockRestore();
   });
 
   it('fails when the Finnish menu cannot be fetched', async () => {

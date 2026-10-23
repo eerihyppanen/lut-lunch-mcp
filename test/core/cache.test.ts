@@ -90,6 +90,16 @@ describe('CachedLoader', () => {
     expect(failing).toHaveBeenCalledTimes(2);
   });
 
+  it('logs each failed upstream refresh once to stderr, with its key', async () => {
+    const log = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const l = new CachedLoader(new MemoryCacheStore(), now);
+    await expect(l.load('compass:2026-10-19', 1000, down)).rejects.toThrow('down');
+    await expect(l.load('compass:2026-10-19', 1000, down)).rejects.toThrow('down'); // negative cache
+    expect(log).toHaveBeenCalledTimes(1);
+    expect(log.mock.calls[0]?.join(' ')).toMatch(/compass:2026-10-19.*down/);
+    log.mockRestore();
+  });
+
   it('wraps unexpected errors as non-retryable SourceErrors', async () => {
     const l = new CachedLoader(new MemoryCacheStore(), now);
     const err = await l
