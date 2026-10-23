@@ -12,6 +12,7 @@ import type { MenuSource, SourceResult } from './source.js';
 const API = 'https://api.fi.poweresta.com/publicmenu';
 const MENUS_URL = `${API}/menus/kampusravintolat/lut/`;
 const SLUG_TTL_MS = 6 * 3600_000;
+const UNPUBLISHED: SourceResult = { days: {}, coverage: null };
 
 // Course names end in a price list: "Lounas 3,10 / 5,90 / 9,00 / 12,00".
 const PRICE_SUFFIX = /\s*\d+,\d{2}(\s*\/\s*\d+,\d{2})+\s*$/;
@@ -129,13 +130,16 @@ export function createPowerestaSource(http: HttpClient, loader: CachedLoader): M
       const monday = isoWeekMonday(date);
       const week = Array.from({ length: 7 }, (_, i) => addDays(monday, i)).join(',');
       const results = await Promise.all(
-        slugs.map(async (slug) =>
-          parsePowerestaDates(
-            await http.getJson(
-              `${API}/dates/kampusravintolat/lut/?menu=${encodeURIComponent(slug)}&dates=${week}`,
-            ),
-          ),
-        ),
+        slugs.map(async (slug) => {
+          const url = `${API}/dates/kampusravintolat/lut/?menu=${encodeURIComponent(slug)}&dates=${week}`;
+          try {
+            return parsePowerestaDates(await http.getJson(url));
+          } catch (error) {
+            // Poweresta answers 400 when none of the requested dates is published yet.
+            if (error instanceof SourceError && error.status === 400) return UNPUBLISHED;
+            throw error;
+          }
+        }),
       );
       return mergeBySlugOrder(results);
     },

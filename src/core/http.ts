@@ -6,11 +6,14 @@ const DEFAULT_TIMEOUT_MS = 8000;
 /** An upstream failure. `retryable` is true when trying again later might succeed. */
 export class SourceError extends Error {
   readonly retryable: boolean;
+  /** HTTP status when the upstream answered with an error status. */
+  readonly status: number | undefined;
 
-  constructor(message: string, retryable: boolean) {
+  constructor(message: string, retryable: boolean, status?: number) {
     super(message);
     this.name = 'SourceError';
     this.retryable = retryable;
+    this.status = status;
   }
 }
 
@@ -39,7 +42,11 @@ export function createFetchHttpClient(opts: {
       });
       if (!response.ok) {
         const retryable = response.status >= 500 || response.status === 429;
-        throw new SourceError(`Request to ${url} failed with HTTP ${response.status}`, retryable);
+        throw new SourceError(
+          `Request to ${url} failed with HTTP ${response.status}`,
+          retryable,
+          response.status,
+        );
       }
       return await response.text();
     } catch (error) {

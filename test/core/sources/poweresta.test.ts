@@ -104,6 +104,34 @@ describe('createPowerestaSource', () => {
     expect(r.days['2026-10-23']).toHaveLength(4);
   });
 
+  it('treats HTTP 400 for a week with no published dates as unpublished', async () => {
+    // Poweresta answers 400 (empty body) when none of the requested dates is published yet.
+    const http: HttpClient = {
+      getText: vi.fn(),
+      getJson: vi.fn((u: string) =>
+        u.includes('/menus/')
+          ? Promise.resolve(menus)
+          : Promise.reject(new SourceError('HTTP 400', false, 400)),
+      ),
+    };
+    const r = await createPowerestaSource(http, loader()).fetchUnit('2026-11-02', '2026-10-23');
+    expect(r).toEqual({ days: {}, coverage: null });
+  });
+
+  it('still fails on other HTTP errors from the dates endpoint', async () => {
+    const http: HttpClient = {
+      getText: vi.fn(),
+      getJson: vi.fn((u: string) =>
+        u.includes('/menus/')
+          ? Promise.resolve(menus)
+          : Promise.reject(new SourceError('HTTP 503', true, 503)),
+      ),
+    };
+    await expect(
+      createPowerestaSource(http, loader()).fetchUnit('2026-11-02', '2026-10-23'),
+    ).rejects.toMatchObject({ status: 503, retryable: true });
+  });
+
   it('fails retryably when no menu is published', async () => {
     const http: HttpClient = { getText: vi.fn(), getJson: vi.fn(() => Promise.resolve([])) };
     await expect(

@@ -12,7 +12,10 @@ describe('createFetchHttpClient', () => {
     fetchFn.mockResolvedValueOnce(new Response('slow down', { status: 429 }));
     await expect(http.getText('https://e')).rejects.toMatchObject({ retryable: true });
     fetchFn.mockResolvedValueOnce(new Response('nope', { status: 404 }));
-    await expect(http.getText('https://e')).rejects.toMatchObject({ retryable: false });
+    await expect(http.getText('https://e')).rejects.toMatchObject({
+      retryable: false,
+      status: 404,
+    });
     fetchFn.mockResolvedValueOnce(new Response('{bad', { status: 200 }));
     await expect(http.getJson('https://e')).rejects.toMatchObject({ retryable: false });
   });
