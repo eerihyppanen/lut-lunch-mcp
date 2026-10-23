@@ -1,0 +1,26 @@
+name: Live smoke
+
+# Checks once a week that the real menu sources still parse (about 8 requests per run),
+# so upstream changes such as a redesigned Yolo page are noticed before users do.
+on:
+  schedule:
+    - cron: '0 6 * * 1' # Mondays 06:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.x'
+          cache: npm
+      - run: npm ci
+      - run: npm run smoke
