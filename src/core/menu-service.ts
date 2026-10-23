@@ -28,9 +28,14 @@ function resolveStatus(result: SourceResult, date: string, today: string): DaySt
   const courses = result.days[date] ?? [];
   if (courses.some((c) => c.dishes.length > 0)) return { kind: 'open', courses };
 
-  const covered =
-    result.coverage && date >= result.coverage.from && date <= result.coverage.through;
-  if (!covered) return noMenu(date < today ? 'history_not_available' : 'not_published_yet');
+  // Outside what the source published: past dates are history, later dates aren't out yet.
+  // A date between today and the start of coverage (Yolo's page can start after today) is
+  // still explained by holiday / weekend / nothing listed below.
+  const { coverage } = result;
+  if (!coverage || date > coverage.through) {
+    return noMenu(date < today ? 'history_not_available' : 'not_published_yet');
+  }
+  if (date < coverage.from && date < today) return noMenu('history_not_available');
 
   const holiday = finnishHoliday(date);
   if (holiday) return noMenu('public_holiday', holiday);

@@ -135,6 +135,31 @@ describe('LiveMenuService', () => {
     });
   });
 
+  it('does not call days before a source’s coverage "not published yet"', async () => {
+    // Yolo's page can start after today (e.g. on a Sunday it lists Monday onwards).
+    const yolo = fakeSource('yolo', {
+      days: { '2026-10-26': [course] },
+      coverage: { from: '2026-10-26', through: '2026-10-27' },
+    });
+    const days = await service([yolo]).getDays(
+      ['2026-10-23', '2026-10-24', '2026-10-25', '2026-10-26', '2026-10-28'],
+      ['yolo'],
+    );
+    expect(days.map((d) => [d.date, statusOf(d)])).toEqual([
+      ['2026-10-23', 'no_menu:none_listed'],
+      ['2026-10-24', 'no_menu:weekend'],
+      ['2026-10-25', 'no_menu:weekend'],
+      ['2026-10-26', 'open'],
+      ['2026-10-28', 'no_menu:not_published_yet'],
+    ]);
+    const holiday = fakeSource('yolo', {
+      days: {},
+      coverage: { from: '2026-11-02', through: '2026-11-03' },
+    });
+    const [allSaints] = await service([holiday]).getDays(['2026-10-31'], ['yolo']);
+    expect(allSaints!.status).toMatchObject({ reason: 'public_holiday' });
+  });
+
   it("uses Finland's date for today", () => {
     expect(service([], () => new Date('2026-10-23T21:30:00Z')).today()).toBe('2026-10-24');
   });
