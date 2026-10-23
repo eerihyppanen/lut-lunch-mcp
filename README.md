@@ -110,11 +110,13 @@ not covered by the source → Finnish public holiday → weekend → nothing lis
 Invalid dates get an error that says which forms are accepted.
 
 **Unknown is never safe.** Allergen data differs by source: LUT Buffet publishes full lists for most
-dishes, Yolo marks five allergens, Bistro only labels gluten-free and milk-free. Each dish records
-which allergens its source actually assessed. When excluding, say, egg, a dish without egg data is
-left out and counted as `unverifiable`, never shown as egg-free. Gluten and milk are decided by the
-gluten-free/milk-free labels every source has (so gluten-free oats pass even though oats appear in
-the allergen list).
+dishes, Yolo marks five allergens on some dishes, Bistro only labels gluten-free and milk-free. Each
+dish records which allergens its source actually assessed. A Yolo marker proves an allergen is
+present, but a missing marker proves nothing (its "Tuna and eggs" salad carries no egg marker), and an
+allergen name the server doesn't recognise makes that dish's list count as incomplete. When
+excluding, say, egg, a dish without reliable egg data is left out and counted as `unverifiable`,
+never shown as egg-free. Gluten and milk are decided by the gluten-free/milk-free labels every source
+has (so gluten-free oats pass even though oats appear in the allergen list).
 
 **Polite to the sources.** Each source is fetched a whole week per request, cached for 30 minutes,
 and concurrent requests share one fetch. If a source fails, the last good copy is served (marked

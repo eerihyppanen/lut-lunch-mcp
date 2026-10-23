@@ -67,6 +67,19 @@ describe('find_dishes', () => {
     expect(out.unverifiable).toBe(9);
   });
 
+  it('never offers an unmarked Yolo dish as egg-free (review finding 1)', async () => {
+    const out = await find({
+      exclude_allergens: ['egg'],
+      restaurants: ['yolo'],
+      to: '2026-10-27',
+      limit: 100,
+    });
+    const names = out.matches.map((m) => m.dish.name);
+    expect(names).not.toContain('Tuna and eggs (Inc. light soup)');
+    expect(names).not.toContain('Chocolate mousse/chocolate cake (L,MU)');
+    expect(out.unverifiable).toBeGreaterThan(0);
+  });
+
   it('truncates at limit', async () => {
     const out = await find({ diet: ['lactose_free'], limit: 2 });
     expect(out.matches).toHaveLength(2);
