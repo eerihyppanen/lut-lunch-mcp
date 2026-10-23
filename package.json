@@ -2,6 +2,11 @@
   "name": "@eerihyppanen/lut-lunch-mcp",
   "version": "0.1.0",
   "description": "MCP server for LUT University Skinnarila campus lunch menus",
+  "author": "eerihyppanen",
+  "homepage": "https://github.com/eerihyppanen/lut-lunch-mcp#readme",
+  "bugs": {
+    "url": "https://github.com/eerihyppanen/lut-lunch-mcp/issues"
+  },
   "type": "module",
   "bin": {
     "lut-lunch-mcp": "dist/bin/stdio.js"
