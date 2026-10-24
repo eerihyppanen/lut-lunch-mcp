@@ -2,6 +2,7 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { resolveDateInput } from '../../core/calendar/dates.js';
 import type { History } from '../../core/history/types.js';
+import { HistorySchemaError } from '../../core/history/remote.js';
 import { SourceError } from '../../core/http.js';
 import { RESTAURANT_IDS, type MenuService } from '../../core/types.js';
 import { READ_ONLY } from '../annotations.js';
@@ -57,9 +58,10 @@ async function loadHistory(service: MenuService): Promise<History> {
   try {
     return await service.loadHistory();
   } catch (error) {
-    if (error instanceof SourceError) {
-      throw new ToolFailure(error.retryable ? UNAVAILABLE : error.message);
-    }
+    // Only an unsupported schema has a fix worth naming; any other download or data problem
+    // (HTTP errors, malformed data) reads as temporary (spec §8).
+    if (error instanceof HistorySchemaError) throw new ToolFailure(error.message);
+    if (error instanceof SourceError) throw new ToolFailure(UNAVAILABLE);
     throw error;
   }
 }
@@ -73,7 +75,9 @@ export async function menuStats(
   const givenFrom = input.from === undefined ? undefined : resolveDateInput(input.from, today);
   const to = input.to === undefined ? today : resolveDateInput(input.to, today);
   const history = await loadHistory(service);
-  const from = givenFrom ?? history.firstDate ?? today;
+  // A defaulted `from` never lands after `to`, e.g. when `to` is before history starts.
+  const firstDay = history.firstDate ?? today;
+  const from = givenFrom ?? (firstDay < to ? firstDay : to);
   if (to < from) throw new ToolInputError(`"to" (${to}) is before "from" (${from}).`);
 
   const restaurants = input.restaurants?.length ? input.restaurants : [...RESTAURANT_IDS];

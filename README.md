@@ -115,8 +115,7 @@ fork's.
 
 ## Design decisions
 
-**Tools designed for an AI caller, not mirrored from the sources.** Three tools match the questions
-people ask: browse (`get_menu`), search (`find_dishes`) and look up (`list_restaurants`). Which
+**Tools designed for an AI caller, not mirrored from the sources.** Four tools match the questions people ask: browse (`get_menu`), search (`find_dishes`), count (`menu_stats`) and look up (`list_restaurants`). Which
 source a restaurant uses is an implementation detail the model never needs. Tool descriptions say
 when to use which tool and when to try the Finnish word.
 
@@ -148,8 +147,7 @@ commits when something changed. Plain JSON on a branch was enough: no database, 
 
 **Polite to the sources.** Each source is fetched a whole week per request, cached for 30 minutes,
 and concurrent requests share one fetch. If a source fails, the last good copy is served (marked
-`stale`) for up to a day, and the source isn't retried for a minute. Dates far in the past or future
-are answered without any request. Requests identify the project in their User-Agent.
+`stale`) for up to a day, and the source isn't retried for a minute. Dates far in the future are answered without any request, and past dates come from the recorded history. Requests identify the project in their User-Agent.
 
 **Ported, not imported, from Campus Food.** The menu logic started in my
 [Campus Food](https://github.com/eerihyppanen/campus-food) web app, but it was tied to Next.js

@@ -50,8 +50,14 @@ function recordedDay(history: History, id: RestaurantId, date: string): Restaura
   const day = history.days.get(date);
   const entry = day?.restaurants.find((r) => r.id === id);
   if (!day || !entry) return null;
-  // A failed collection can't be retried for a past day, so it reads as "no history".
-  const status = entry.status.kind === 'error' ? noMenu('history_not_available') : entry.status;
+  // A failed collection can't be retried for a past day, so it reads as "no history"; a day
+  // recorded as "not published yet" (e.g. during a long closure) had nothing listed.
+  const status =
+    entry.status.kind === 'error'
+      ? noMenu('history_not_available')
+      : entry.status.kind === 'no_menu' && entry.status.reason === 'not_published_yet'
+        ? noMenu('none_listed')
+        : entry.status;
   return { restaurantId: id, date, status, stale: false, fetchedAt: day.collectedAt };
 }
 

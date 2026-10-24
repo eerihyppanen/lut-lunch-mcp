@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { buildHistoryDataset, indexHistory } from '../../src/core/history/snapshot.js';
+import { HistorySchemaError } from '../../src/core/history/remote.js';
+import { SourceError } from '../../src/core/http.js';
+import type { MenuService } from '../../src/core/types.js';
 import type { GetMenuOutput, MenuStatsOutput } from '../../src/mcp/schemas.js';
 import { call, callText, connectClient } from '../helpers/connect.js';
 import { fakeService } from '../helpers/fakes.js';
@@ -92,5 +95,49 @@ describe('menu_stats', () => {
       restaurants: ['lut-buffet'],
     });
     expect(out.days[0]!.restaurants[0]!.status).toBe('open');
+  });
+
+  const failingHistory = (error: Error): MenuService => ({
+    ...fakeService([], '2026-10-30'),
+    loadHistory: () => Promise.reject(error),
+  });
+
+  it('keeps the schema message but words other history failures as temporary (review finding 1/2)', async () => {
+    const schema = await connectClient(failingHistory(new HistorySchemaError(2)));
+    expect(await callText(schema, 'menu_stats', {})).toBe(
+      'History data uses schema 2; update lut-lunch-mcp.',
+    );
+    const notFound = await connectClient(
+      failingHistory(
+        new SourceError(
+          'Request to https://raw.githubusercontent.com/x/data/history.json failed with HTTP 404',
+          false,
+        ),
+      ),
+    );
+    const text = await callText(notFound, 'menu_stats', {});
+    expect(text).toBe('Menu history is temporarily unavailable; try again later.');
+  });
+
+  it('starts at "to" when "to" is before the recorded history (review finding 5)', async () => {
+    const out = await call<MenuStatsOutput>(await withHistory(), 'menu_stats', {
+      query: 'lohi',
+      to: '2026-10-10',
+    });
+    expect(out.searched).toMatchObject({ from: '2026-10-10', to: '2026-10-10' });
+    expect(out.matches.days_served).toBe(0);
+    const empty = await connectClient(
+      fakeService([], '2026-10-30', indexHistory(buildHistoryDataset([], 'T'))),
+    );
+    expect(await callText(empty, 'menu_stats', { to: '2026-10-10' })).toContain(
+      'No history recorded yet',
+    );
+  });
+
+  it('matches a query without diacritics (review focus 5)', async () => {
+    const out = await call<MenuStatsOutput>(await withHistory(), 'menu_stats', {
+      query: 'Itamaista',
+    });
+    expect(out.matches.first_seen).toMatchObject({ dish: 'Itämaista linssikeittoa' });
   });
 });

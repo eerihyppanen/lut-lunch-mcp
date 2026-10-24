@@ -1,7 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { RestaurantDay } from '../../src/core/types.js';
-import { connectClient } from '../helpers/connect.js';
-import { historyService } from '../helpers/history-fixture.js';
+import type { History } from '../../src/core/history/types.js';
+import { HistorySchemaError } from '../../src/core/history/remote.js';
+import type { FindDishesOutput } from '../../src/mcp/schemas.js';
+import { call, connectClient } from '../helpers/connect.js';
+import { fixtureHistory, historyService } from '../helpers/history-fixture.js';
 
 function statusOf(d: RestaurantDay): string {
   return d.status.kind === 'no_menu' ? `no_menu:${d.status.reason}` : d.status.kind;
@@ -68,5 +71,47 @@ describe('LiveMenuService with history', () => {
     expect(description('find_dishes')).toContain(
       'Past dates are searched in the recorded history, up to 14 days per search',
     );
+  });
+
+  it('keeps today working when the history is broken (review focus 3)', async () => {
+    const svc = historyService({
+      history: {
+        load: () => Promise.reject(new HistorySchemaError(2)),
+      },
+    });
+    const [today] = await svc.getDays(['2026-10-30'], ['lut-buffet']);
+    expect(today!.status.kind).not.toBe('error');
+    const [old] = await svc.getDays(['2026-10-20'], ['lut-buffet']);
+    expect(old!.status).toEqual({ kind: 'error', retryable: false });
+  });
+
+  it('reads a recorded "not published yet" as nothing listed for a past day (review finding 3)', async () => {
+    const h = await fixtureHistory();
+    const day = h.days.get('2026-10-20')!;
+    const closed = {
+      ...day,
+      restaurants: day.restaurants.map((r) =>
+        r.id === 'lut-buffet'
+          ? { ...r, status: { kind: 'no_menu' as const, reason: 'not_published_yet' as const } }
+          : r,
+      ),
+    };
+    const history: History = { ...h, days: new Map([...h.days, ['2026-10-20', closed]]) };
+    const [d] = await historyService({ history: { load: () => Promise.resolve(history) } }).getDays(
+      ['2026-10-20'],
+      ['lut-buffet'],
+    );
+    expect(statusOf(d!)).toBe('no_menu:none_listed');
+  });
+
+  it('finds dishes over a past range end to end (spec §9)', async () => {
+    const out = await call<FindDishesOutput>(await connectClient(historyService()), 'find_dishes', {
+      query: 'lohi',
+      from: '2026-10-19',
+      to: '2026-10-25',
+    });
+    expect(out.matches.map((m) => [m.date, m.restaurant_id, m.dish.name])).toEqual([
+      ['2026-10-23', 'yolo', 'Salmon soup'],
+    ]);
   });
 });

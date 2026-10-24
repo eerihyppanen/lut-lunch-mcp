@@ -9,6 +9,15 @@ export const DEFAULT_HISTORY_URL =
   'https://raw.githubusercontent.com/eerihyppanen/lut-lunch-mcp/data/history.json';
 
 const FRESH_MS = 6 * 3600_000;
+
+/** The history uses a schema this version can't read; the fix is updating the package. */
+export class HistorySchemaError extends SourceError {
+  constructor(schema: number) {
+    super(`History data uses schema ${schema}; update lut-lunch-mcp.`, false);
+    this.name = 'HistorySchemaError';
+  }
+}
+
 const SUPPORTED_SCHEMA = 1;
 
 function parseDataset(json: unknown): History {
@@ -16,7 +25,7 @@ function parseDataset(json: unknown): History {
   // looking broken.
   const schema = (json as { schema?: unknown } | null)?.schema;
   if (typeof schema === 'number' && schema !== SUPPORTED_SCHEMA) {
-    throw new SourceError(`History data uses schema ${schema}; update lut-lunch-mcp.`, false);
+    throw new HistorySchemaError(schema);
   }
   const parsed = HistoryDatasetSchema.safeParse(json);
   if (!parsed.success) throw new SourceError('History data is malformed', false);
