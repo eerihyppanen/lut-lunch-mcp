@@ -76,8 +76,10 @@ for clients that only show text.
 
 Each restaurant in a `get_menu` result has a `status` (`open`, `no_menu`, `error`) and, when it isn't
 open, a `reason`: `weekend`, `public_holiday` (with its name), `none_listed`, `not_published_yet`,
-`history_not_available` or `source_unavailable`. `find_dishes` lists those days in
-`days_without_data`, so "no matches" and "no data" are never confused.
+`history_not_available`, `source_unavailable` (temporary outage; try again later) or `source_error`
+(the source answered with data the server couldn't read, e.g. after a site redesign).
+`find_dishes` lists those days in `days_without_data`, so "no matches" and "no data" are never
+confused.
 
 ## Data sources and credits
 
@@ -116,7 +118,10 @@ present, but a missing marker proves nothing (its "Tuna and eggs" salad carries 
 allergen name the server doesn't recognise makes that dish's list count as incomplete. When
 excluding, say, egg, a dish without reliable egg data is left out and counted as `unverifiable`,
 never shown as egg-free. Gluten and milk are decided by the gluten-free/milk-free labels every source
-has (so gluten-free oats pass even though oats appear in the allergen list).
+has (so gluten-free oats pass even though oats appear in the allergen list). That also means a dish
+labelled gluten-free passes a gluten filter when its list says it _may contain_ wheat or other gluten
+cereals; the "may contain" warning is still shown with the dish, so people with coeliac disease
+should look for it.
 
 **Polite to the sources.** Each source is fetched a whole week per request, cached for 30 minutes,
 and concurrent requests share one fetch. If a source fails, the last good copy is served (marked
@@ -150,7 +155,15 @@ To try a local build in a client, point it at `node /absolute/path/to/dist/bin/s
 
 Layout: `src/core/` (sources, normalization, calendar, cache, menu service; no Node or MCP imports),
 `src/mcp/` (tools, schemas, formatting), `src/bin/stdio.ts` (entry point). Design notes are in
-[`docs/specs/`](docs/specs/).
+[`docs/specs/`](docs/specs/); changes per release are in [CHANGELOG.md](CHANGELOG.md).
+
+Releasing (from an up-to-date `main`):
+
+```bash
+npm version patch         # bumps package.json and src/version.ts, commits and tags
+git push --follow-tags
+npm publish               # runs lint, typecheck, tests and build first; asks for npm 2FA
+```
 
 ## Limitations
 
@@ -159,6 +172,8 @@ Layout: `src/core/` (sources, normalization, calendar, cache, menu service; no N
 - Yolo publishes about four serving days ahead and no per-course prices.
 - "Vegetarian" is inferred from course names (no source has a vegetarian label).
 - Lunch hours in `list_restaurants` are the usual hours and can change; check the menu link.
+- Gluten filtering trusts the restaurant's gluten-free label, even over a "may contain" note (see
+  [Design decisions](#design-decisions)).
 
 ## Roadmap
 
