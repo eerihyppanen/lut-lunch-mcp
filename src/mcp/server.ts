@@ -4,12 +4,14 @@ import { VERSION } from '../version.js';
 import { registerFindDishes } from './tools/find-dishes.js';
 import { registerGetMenu } from './tools/get-menu.js';
 import { registerListRestaurants } from './tools/list-restaurants.js';
+import { registerMenuStats } from './tools/menu-stats.js';
 
 /** Builds the MCP server with every tool registered. Shared by the stdio entry and tests. */
 export function createServer(service: MenuService): McpServer {
   const server = new McpServer({ name: 'lut-lunch-mcp', version: VERSION });
   registerGetMenu(server, service);
   registerFindDishes(server, service);
+  registerMenuStats(server, service);
   registerListRestaurants(server);
   return server;
 }

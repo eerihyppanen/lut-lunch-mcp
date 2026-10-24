@@ -1,7 +1,13 @@
 import { addDays } from '../core/calendar/dates.js';
 import { getRestaurant } from '../core/restaurants.js';
-import type { DietTag } from '../core/types.js';
-import type { DishOut, FindDishesOutput, GetMenuOutput, RestaurantDayOut } from './schemas.js';
+import { RESTAURANT_IDS, type DietTag, type RestaurantId } from '../core/types.js';
+import type {
+  DishOut,
+  FindDishesOutput,
+  GetMenuOutput,
+  MenuStatsOutput,
+  RestaurantDayOut,
+} from './schemas.js';
 
 // Compact text versions of tool results, for clients that only show the text content.
 
@@ -112,6 +118,60 @@ export function formatMatches(out: FindDishesOutput): string {
         `  ${getRestaurant(d.restaurant_id).name} on ${d.date}: ${reasonText(d.reason, d.holiday_name)}`,
       );
     }
+  }
+  if (out.notice) lines.push('', out.notice);
+  return lines.join('\n');
+}
+
+function plural(n: number, word: string, many = `${word}s`): string {
+  return `${n} ${n === 1 ? word : many}`;
+}
+
+function restaurantNames(ids: RestaurantId[]): string {
+  return ids.length === RESTAURANT_IDS.length
+    ? 'all restaurants'
+    : ids.map((id) => getRestaurant(id).name).join(', ');
+}
+
+export function formatStats(out: MenuStatsOutput): string {
+  const { history, searched, matches } = out;
+  if (!history.first_date || !history.last_date) {
+    return 'No history recorded yet; collection has not stored any days.';
+  }
+  const what = searched.query ? `"${searched.query}"` : 'all dishes';
+  const diet = searched.diet.length ? ` (${searched.diet.join(', ')})` : '';
+  const lines = [
+    `History ${history.first_date} to ${history.last_date} ` +
+      `(${plural(history.days_recorded, 'day')} recorded).` +
+      (history.days_missing ? ` Missing: ${plural(history.days_missing, 'day')}.` : ''),
+    `Searched ${what}${diet} at ${restaurantNames(searched.restaurants)}, ` +
+      `${searched.from} to ${searched.to}.`,
+  ];
+  const { first_seen: first, last_seen: last } = matches;
+  if (!first || !last) {
+    lines.push('No matching dishes in this period.');
+  } else {
+    const at = (s: typeof first) => `${s.date} at ${getRestaurant(s.restaurant_id).name}`;
+    lines.push(
+      `Served on ${plural(matches.days_served, 'restaurant-day')} ` +
+        `(${plural(matches.dishes_matched, 'dish', 'dishes')}). First ${at(first)}, last ${at(last)}.`,
+    );
+  }
+  const label = (key: string) =>
+    (RESTAURANT_IDS as readonly string[]).includes(key)
+      ? getRestaurant(key as RestaurantId).name
+      : key;
+  lines.push(
+    '  ' +
+      out.groups
+        .map((g) => `${label(g.key)}: ${g.days_served} of ${plural(g.open_days, 'open day')}`)
+        .join(' · '),
+  );
+  if (out.top_dishes.length) {
+    lines.push(
+      'Most common: ' +
+        out.top_dishes.map((t) => `${t.name} (${t.times}×, last ${t.last_seen})`).join(' · '),
+    );
   }
   if (out.notice) lines.push('', out.notice);
   return lines.join('\n');

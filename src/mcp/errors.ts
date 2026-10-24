@@ -9,6 +9,14 @@ export class ToolInputError extends Error {
   }
 }
 
+/** A failure the caller should see as-is (e.g. an unavailable upstream), not an internal bug. */
+export class ToolFailure extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'ToolFailure';
+  }
+}
+
 export function errorResult(message: string): CallToolResult {
   return { isError: true, content: [{ type: 'text', text: message }] };
 }
@@ -24,7 +32,11 @@ export async function runTool(
   try {
     return await body();
   } catch (error) {
-    if (error instanceof InvalidDateError || error instanceof ToolInputError) {
+    if (
+      error instanceof InvalidDateError ||
+      error instanceof ToolInputError ||
+      error instanceof ToolFailure
+    ) {
       return errorResult(error.message);
     }
     console.error('lut-lunch-mcp: tool failed', error);
