@@ -135,3 +135,48 @@ export const FindDishesOutputSchema = z.object({
   notice: z.string().nullable(),
 });
 export type FindDishesOutput = z.infer<typeof FindDishesOutputSchema>;
+
+const SeenSchema = z.object({
+  date: z.string(),
+  restaurant_id: z.enum(RESTAURANT_IDS),
+  dish: z.string(),
+});
+
+/** menu_stats output (spec §7). */
+export const MenuStatsOutputSchema = z.object({
+  timezone: z.literal('Europe/Helsinki'),
+  today: z.string(),
+  history: z.object({
+    first_date: z.string().nullable(),
+    last_date: z.string().nullable(),
+    days_recorded: z.number().int(),
+    days_missing: z.number().int(),
+    restaurant_days_unavailable: z.number().int(),
+  }),
+  searched: z.object({
+    from: z.string(),
+    to: z.string(),
+    restaurants: z.array(z.enum(RESTAURANT_IDS)),
+    query: z.string().nullable(),
+    diet: z.array(z.enum(DIET_TAGS)),
+  }),
+  matches: z.object({
+    days_served: z.number().int(),
+    dishes_matched: z.number().int(),
+    first_seen: SeenSchema.nullable(),
+    last_seen: SeenSchema.nullable(),
+  }),
+  groups: z.array(
+    z.object({ key: z.string(), open_days: z.number().int(), days_served: z.number().int() }),
+  ),
+  top_dishes: z.array(
+    z.object({
+      name: z.string(),
+      times: z.number().int(),
+      restaurants: z.array(z.enum(RESTAURANT_IDS)),
+      last_seen: z.string(),
+    }),
+  ),
+  notice: z.string().nullable(),
+});
+export type MenuStatsOutput = z.infer<typeof MenuStatsOutputSchema>;
