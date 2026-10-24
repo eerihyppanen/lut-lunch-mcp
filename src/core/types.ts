@@ -1,3 +1,5 @@
+import type { History } from './history/types.js';
+
 export const RESTAURANT_IDS = ['lut-buffet', 'bistro-skinnarila', 'yolo'] as const;
 export type RestaurantId = (typeof RESTAURANT_IDS)[number];
 
@@ -85,4 +87,6 @@ export interface MenuService {
   getDays(dates: string[], restaurants: RestaurantId[]): Promise<RestaurantDay[]>;
   /** Today's date in Europe/Helsinki. */
   today(): string;
+  /** The recorded menu history; rejects with SourceError when it is unavailable. */
+  loadHistory(): Promise<History>;
 }

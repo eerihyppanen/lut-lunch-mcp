@@ -1,15 +1,28 @@
 import { isoWeekMonday } from '../../src/core/calendar/dates.js';
+import type { History } from '../../src/core/history/types.js';
+import { SourceError } from '../../src/core/http.js';
 import type { MenuSource, SourceResult } from '../../src/core/sources/source.js';
 import type { MenuService, RestaurantDay, RestaurantId } from '../../src/core/types.js';
 
-/** A MenuService that serves a fixed set of days. */
-export function fakeService(days: RestaurantDay[] = [], today = '2026-10-23'): MenuService {
+/**
+ * A MenuService that serves a fixed set of days, and optionally a fixed history. Without a
+ * history, loadHistory rejects as temporarily unavailable.
+ */
+export function fakeService(
+  days: RestaurantDay[] = [],
+  today = '2026-10-23',
+  history?: History,
+): MenuService {
   return {
     today: () => today,
     getDays: (dates, restaurants) =>
       Promise.resolve(
         days.filter((d) => dates.includes(d.date) && restaurants.includes(d.restaurantId)),
       ),
+    loadHistory: () =>
+      history
+        ? Promise.resolve(history)
+        : Promise.reject(new SourceError('Menu history is temporarily unavailable', true)),
   };
 }
 

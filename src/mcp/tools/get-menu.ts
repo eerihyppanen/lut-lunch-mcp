@@ -19,11 +19,13 @@ import {
 
 const DESCRIPTION =
   "Get lunch menus for LUT University's Skinnarila campus restaurants (Lappeenranta, Finland) for " +
-  'one day or several consecutive days. Use it to show what is being served, e.g. "what\'s for ' +
-  'lunch today?". To look for a particular dish, ingredient, diet or allergen across days and ' +
-  'restaurants, use find_dishes instead. Pass "today" or "tomorrow" rather than computing dates ' +
-  'yourself; dates are in Finland time. Restaurants without a menu are still listed with a reason ' +
-  '(weekend, public holiday, not published yet, source unavailable).';
+  'one day or several consecutive days, including past days from the recorded history. Use it to ' +
+  'show what is or was served, e.g. "what\'s for lunch today?" or "what was on last Tuesday?". To ' +
+  'look for a particular dish, ingredient, diet or allergen across days and restaurants, use ' +
+  'find_dishes; for "how often" and "when last", use menu_stats. Pass "today" or "tomorrow" ' +
+  'rather than computing dates yourself; dates are in Finland time. Restaurants without a menu ' +
+  'are still listed with a reason (weekend, public holiday, not published yet, no history for ' +
+  'that day, source unavailable).';
 
 export const GetMenuInputSchema = z.object({
   date: DateInput.default('today'),

@@ -33,7 +33,7 @@ const err: Make = (restaurantId, date) => ({
 });
 
 /** A service whose restaurants answer with the given statuses for any requested date. */
-function svc(lut: Make, bistro: Make, yolo: Make): MenuService {
+function svc(lut: Make, bistro: Make, yolo: Make): Pick<MenuService, 'today' | 'getDays'> {
   return {
     today: () => '2026-10-26',
     getDays: (dates) =>

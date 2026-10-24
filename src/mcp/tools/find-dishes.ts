@@ -30,7 +30,8 @@ const DESCRIPTION =
   'this week?", "where is something gluten-free tomorrow?" or "is there salmon this week?". ' +
   'Returns a flat list of matching dishes with date and restaurant. Searches Finnish and English ' +
   'dish names; if an English word finds nothing, try the Finnish one (e.g. "lohi" for salmon). ' +
-  'Only currently published menus are searchable; history is not available yet.';
+  'Past dates are searched in the recorded history, up to 14 days per search; for "how often" ' +
+  'or "when last" over longer periods use menu_stats.';
 
 const MAX_SPAN_DAYS = 14;
 
