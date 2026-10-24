@@ -108,7 +108,7 @@ each morning (with a retry later in the day) and commits it to the
 combined `history.json`. The server downloads that file when it is first asked about the past
 (at most every 6 hours) and answers past-day, "how often" and "when last" questions from it.
 
-History starts on the first day the collector ran; every `menu_stats` result states the period it
+History starts on 2026-10-24, the first day the collector ran; every `menu_stats` result states the period it
 covers. Only what the server needs is stored (names, prices, diet labels, allergens), with
 attribution to each restaurant. Set `LUT_LUNCH_HISTORY_URL` to use another `history.json`, e.g. a
 fork's.
