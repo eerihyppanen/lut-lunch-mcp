@@ -1,0 +1,60 @@
+name: Collect history
+
+# Records each day's menus into the data branch (spec docs/specs/2026-10-24-phase-2-history-design.md §5).
+# The 06:30 run records the day; the 10:30 run retries restaurants that failed and makes the job
+# fail (and email the owner) if any are still failing.
+on:
+  schedule:
+    - cron: '30 6 * * *' # 09:30 Helsinki in summer, 08:30 in winter
+    - cron: '30 10 * * *' # retry
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: collect
+  cancel-in-progress: false
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@v7
+        with:
+          ref: data
+          path: data
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24.x'
+          cache: npm
+      - run: npm ci
+      - name: Collect today's menus
+        id: collect
+        run: |
+          flag=""
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] || [ "${{ github.event.schedule }}" = "30 10 * * *" ]; then
+            flag="--fail-on-error"
+          fi
+          set +e
+          npm run collect -- --data-dir data $flag
+          echo "code=$?" >> "$GITHUB_OUTPUT"
+      - name: Commit to the data branch
+        working-directory: data
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+          else
+            git commit -m "data: $(TZ=Europe/Helsinki date +%F)"
+            git push
+          fi
+      - name: Fail if a restaurant could not be collected
+        if: steps.collect.outputs.code != '0'
+        run: exit 1
