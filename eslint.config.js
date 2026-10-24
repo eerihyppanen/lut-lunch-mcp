@@ -19,10 +19,32 @@ export default tseslint.config(
         'error',
         {
           patterns: [
-            { group: ['node:*'], message: 'src/core must not use Node APIs.' },
+            {
+              group: [
+                'node:*',
+                ...['fs', 'path', 'os', 'child_process', 'crypto', 'http', 'https', 'net', 'tls'],
+                ...['url', 'util', 'stream', 'buffer', 'events', 'zlib', 'worker_threads'],
+              ],
+              message: 'src/core must not use Node APIs.',
+            },
             { group: ['@modelcontextprotocol/*'], message: 'src/core must not depend on MCP.' },
           ],
         },
+      ],
+      'no-restricted-globals': [
+        'error',
+        ...[
+          'process',
+          'Buffer',
+          'require',
+          '__dirname',
+          '__filename',
+          'global',
+          'setImmediate',
+        ].map((name) => ({
+          name,
+          message: 'src/core must run outside Node (Cloudflare Workers).',
+        })),
       ],
     },
   },
