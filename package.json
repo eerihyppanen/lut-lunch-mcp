@@ -23,7 +23,8 @@
     "format:check": "prettier --check .",
     "smoke": "tsx scripts/smoke.ts",
     "inspect": "npx @modelcontextprotocol/inspector npx tsx src/bin/stdio.ts",
-    "prepublishOnly": "npm run lint && npm run typecheck && npm test && npm run build"
+    "prepublishOnly": "npm run lint && npm run typecheck && npm test && npm run build",
+    "version": "tsx scripts/sync-version.ts && git add src/version.ts"
   },
   "repository": {
     "type": "git",
