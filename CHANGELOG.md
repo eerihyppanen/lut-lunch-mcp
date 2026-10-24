@@ -2,6 +2,17 @@
 
 All notable changes to this project. Versions follow [semantic versioning](https://semver.org).
 
+## 0.2.0 (2026-10-24)
+
+### Added
+
+- Menu history: a daily GitHub Actions collector records every restaurant's menu (or why it had
+  none) to the `data` branch, and the server downloads it on demand (`LUT_LUNCH_HISTORY_URL`
+  overrides the location).
+- `menu_stats` tool: how often and when dishes matching a word or diet were served, counts per
+  restaurant, month or weekday, and the most common dishes.
+- `get_menu` and `find_dishes` answer past dates from the recorded history.
+
 ## 0.1.1 (2026-10-24)
 
 ### Fixed
