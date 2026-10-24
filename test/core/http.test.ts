@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { USER_AGENT, createFetchHttpClient } from '../../src/core/http.js';
+import { VERSION } from '../../src/version.js';
 
 describe('createFetchHttpClient', () => {
   it('sends the User-Agent and classifies HTTP errors', async () => {
@@ -48,6 +49,8 @@ describe('createFetchHttpClient', () => {
   });
 
   it('identifies the project in its User-Agent', () => {
-    expect(USER_AGENT).toBe('lut-lunch-mcp/0.1.0 (+https://github.com/eerihyppanen/lut-lunch-mcp)');
+    expect(USER_AGENT).toBe(
+      `lut-lunch-mcp/${VERSION} (+https://github.com/eerihyppanen/lut-lunch-mcp)`,
+    );
   });
 });
