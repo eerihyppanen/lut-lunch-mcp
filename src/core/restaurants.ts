@@ -26,7 +26,8 @@ export const RESTAURANTS: readonly RestaurantInfo[] = [
     menuUrl: 'https://www.kampusravintolat.fi/',
     usualLunchHours: 'Mon–Fri 10:30–15:00',
     menusPublishedAhead: 'current week',
-    allergenCoverage: 'full',
+    // Full allergen lists for most dishes, but some rows have none.
+    allergenCoverage: 'partial',
   },
   {
     id: 'bistro-skinnarila',

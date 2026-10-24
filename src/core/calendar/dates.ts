@@ -16,8 +16,12 @@ const WEEKDAYS: readonly Weekday[] = [
 
 const DAY_MS = 86_400_000;
 const ISO_DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
+// Menus only exist for current dates; the bounds keep Date arithmetic in plain YYYY form.
+const MIN_YEAR = 2000;
+const MAX_YEAR = 2100;
 
-const HELSINKI_DATE = new Intl.DateTimeFormat('en-CA', {
+// Read the parts rather than relying on one locale's formatting (e.g. en-CA's YYYY-MM-DD).
+const HELSINKI_PARTS = new Intl.DateTimeFormat('en-US', {
   timeZone: 'Europe/Helsinki',
   year: 'numeric',
   month: '2-digit',
@@ -33,7 +37,9 @@ export class InvalidDateError extends Error {
 
 /** The calendar date in Finland at the given instant. */
 export function helsinkiToday(now: Date): string {
-  return HELSINKI_DATE.format(now);
+  const parts = HELSINKI_PARTS.formatToParts(now);
+  const part = (type: Intl.DateTimeFormatPartTypes) => parts.find((p) => p.type === type)!.value;
+  return `${part('year')}-${part('month')}-${part('day')}`;
 }
 
 function toUtc(date: string): Date {
@@ -45,7 +51,10 @@ function fromUtc(d: Date): string {
 }
 
 export function isValidIsoDate(s: string): boolean {
-  if (!ISO_DATE.test(s)) return false;
+  const match = ISO_DATE.exec(s);
+  if (!match) return false;
+  const year = Number(match[1]);
+  if (year < MIN_YEAR || year > MAX_YEAR) return false;
   const d = toUtc(s);
   return !Number.isNaN(d.getTime()) && fromUtc(d) === s;
 }
@@ -82,8 +91,9 @@ export function isoWeekMonday(date: string): string {
 
 /** Resolves a tool's date argument against today's Helsinki date. */
 export function resolveDateInput(input: string, today: string): string {
-  if (input === 'today') return today;
-  if (input === 'tomorrow') return addDays(today, 1);
-  if (isValidIsoDate(input)) return input;
+  const value = input.trim().toLowerCase();
+  if (value === 'today') return today;
+  if (value === 'tomorrow') return addDays(today, 1);
+  if (isValidIsoDate(value)) return value;
   throw new InvalidDateError(input);
 }

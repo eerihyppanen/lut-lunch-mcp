@@ -13,6 +13,14 @@ describe('list_restaurants', () => {
     expect(out.restaurants.every((r) => r.campus === 'Skinnarila (Lappeenranta)')).toBe(true);
   });
 
+  it('describes allergen coverage honestly', async () => {
+    // LUT Buffet lists allergens for most dishes but not all, so it is "partial" too.
+    const client = await connectClient(fakeService());
+    const res = await client.callTool({ name: 'list_restaurants', arguments: {} });
+    const out = res.structuredContent as { restaurants: { allergen_coverage: string }[] };
+    expect(out.restaurants.map((r) => r.allergen_coverage)).toEqual(['partial', 'none', 'partial']);
+  });
+
   it('marks every tool read-only', async () => {
     const { tools } = await (await connectClient(fakeService())).listTools();
     expect(tools.length).toBeGreaterThan(0);

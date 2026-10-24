@@ -68,6 +68,20 @@ describe('date validation and input resolution', () => {
     expect(isValidIsoDate('2026-1-5')).toBe(false);
   });
 
+  it('accepts today/tomorrow in any case and with surrounding spaces', () => {
+    expect(resolveDateInput('Today', '2026-10-23')).toBe('2026-10-23');
+    expect(resolveDateInput(' TOMORROW ', '2026-10-23')).toBe('2026-10-24');
+    expect(resolveDateInput(' 2026-10-26 ', '2026-10-23')).toBe('2026-10-26');
+  });
+
+  it('only accepts years 2000–2100', () => {
+    expect(isValidIsoDate('2000-01-01')).toBe(true);
+    expect(isValidIsoDate('2100-12-31')).toBe(true);
+    expect(isValidIsoDate('1999-12-31')).toBe(false);
+    expect(isValidIsoDate('2101-01-01')).toBe(false);
+    expect(() => resolveDateInput('9999-12-30', '2026-10-23')).toThrow(InvalidDateError);
+  });
+
   it('resolves today, tomorrow and ISO dates', () => {
     expect(resolveDateInput('today', '2026-10-23')).toBe('2026-10-23');
     expect(resolveDateInput('tomorrow', '2026-10-23')).toBe('2026-10-24');
