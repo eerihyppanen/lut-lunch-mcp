@@ -4,7 +4,7 @@ import { LiveMenuService } from '../../src/core/menu-service.js';
 import { parseAalefPage } from '../../src/core/sources/aalef.js';
 import { parseCompassWeek } from '../../src/core/sources/compass.js';
 import { parsePowerestaDates } from '../../src/core/sources/poweresta.js';
-import type { SourceResult } from '../../src/core/sources/source.js';
+import type { MenuSource, SourceResult } from '../../src/core/sources/source.js';
 import { fakeSource } from './fakes.js';
 import { fixtureJson, fixtureText } from './fixtures.js';
 
@@ -16,6 +16,15 @@ const UNPUBLISHED: SourceResult = { days: {}, coverage: null };
 
 /** A real LiveMenuService whose sources serve the captured fixtures instead of the network. */
 export function fixtureService(): LiveMenuService {
+  return new LiveMenuService({
+    sources: fixtureSources(),
+    loader: new CachedLoader(new MemoryCacheStore(), () => FIXTURE_NOW.getTime()),
+    now: () => FIXTURE_NOW,
+  });
+}
+
+/** The three restaurant sources backed by the captured fixtures (week of 2026-10-19). */
+export function fixtureSources(): MenuSource[] {
   const lut = parsePowerestaDates(fixtureJson('poweresta/week-2026-10-19.json'));
   const bistro = parseCompassWeek(
     fixtureJson('compass/week-2026-10-19-fi.json'),
@@ -27,13 +36,9 @@ export function fixtureService(): LiveMenuService {
   const forWeek = (result: SourceResult) => (date: string) =>
     isoWeekMonday(date) === FIXTURE_WEEK ? result : UNPUBLISHED;
 
-  return new LiveMenuService({
-    sources: [
-      fakeSource('lut-buffet', forWeek(lut)),
-      fakeSource('bistro-skinnarila', forWeek(bistro)),
-      fakeSource('yolo', yolo),
-    ],
-    loader: new CachedLoader(new MemoryCacheStore(), () => FIXTURE_NOW.getTime()),
-    now: () => FIXTURE_NOW,
-  });
+  return [
+    fakeSource('lut-buffet', forWeek(lut)),
+    fakeSource('bistro-skinnarila', forWeek(bistro)),
+    fakeSource('yolo', yolo),
+  ];
 }
