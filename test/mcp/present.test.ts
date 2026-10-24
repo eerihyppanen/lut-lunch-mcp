@@ -58,6 +58,23 @@ describe('presentRestaurantDay', () => {
     expect(out.hidden_by_filters).toBe(2); // noodle soup and tartar sauce contain egg
   });
 
+  it('separates permanent source errors from temporary outages', () => {
+    const broken = presentRestaurantDay(
+      { ...day, status: { kind: 'error', retryable: false } },
+      'en',
+      {},
+    );
+    expect(broken).toMatchObject({ status: 'error', reason: 'source_error' });
+    const text = formatDays({
+      timezone: 'Europe/Helsinki',
+      today: '2026-10-23',
+      notice: null,
+      days: [{ date: '2026-10-23', weekday: 'Friday', restaurants: [broken] }],
+    });
+    expect(text).toMatch(/LUT Buffet — unavailable: .*could not be read/);
+    expect(text).not.toMatch(/try again later/i);
+  });
+
   it('maps errors and closed days to reasons', () => {
     const err = presentRestaurantDay(
       { ...day, status: { kind: 'error', retryable: true } },
@@ -141,6 +158,7 @@ describe('text formatting', () => {
           restaurant_id: 'yolo',
           status: 'no_menu',
           reason: 'not_published_yet',
+          holiday_name: null,
         },
       ],
       unverifiable: 0,

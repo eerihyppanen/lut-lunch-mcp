@@ -68,7 +68,8 @@ const NoMenuReasonOut = z.enum([
   'none_listed',
   'not_published_yet',
   'history_not_available',
-  'source_unavailable',
+  'source_unavailable', // temporary: timeout, network error, server error
+  'source_error', // permanent: the source answered with data that could not be read
 ]);
 
 export const RestaurantDayOutSchema = z.object({
@@ -127,6 +128,7 @@ export const FindDishesOutputSchema = z.object({
       restaurant_id: z.enum(RESTAURANT_IDS),
       status: z.enum(['no_menu', 'error']),
       reason: NoMenuReasonOut,
+      holiday_name: z.string().nullable(),
     }),
   ),
   unverifiable: z.number().int(),

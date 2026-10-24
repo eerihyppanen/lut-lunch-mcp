@@ -31,6 +31,7 @@ const REASON_TEXT: Record<Reason, string> = {
   not_published_yet: 'not published yet',
   history_not_available: 'past menus are not available',
   source_unavailable: 'menu source unavailable, try again later',
+  source_error: 'the menu source could not be read (its site may have changed)',
 };
 
 function tagText(tags: DietTag[]): string {
@@ -107,7 +108,9 @@ export function formatMatches(out: FindDishesOutput): string {
   if (out.days_without_data.length) {
     lines.push('No menu data for:');
     for (const d of out.days_without_data) {
-      lines.push(`  ${getRestaurant(d.restaurant_id).name} on ${d.date}: ${REASON_TEXT[d.reason]}`);
+      lines.push(
+        `  ${getRestaurant(d.restaurant_id).name} on ${d.date}: ${reasonText(d.reason, d.holiday_name)}`,
+      );
     }
   }
   if (out.notice) lines.push('', out.notice);

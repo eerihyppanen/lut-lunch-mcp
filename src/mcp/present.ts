@@ -1,5 +1,5 @@
 import { getRestaurant } from '../core/restaurants.js';
-import type { Dish, LocalizedName, RestaurantDay } from '../core/types.js';
+import type { DayStatus, Dish, LocalizedName, RestaurantDay } from '../core/types.js';
 import { judgeDish, type DishFilter } from './filters.js';
 import type { DishOut, Language, RestaurantDayOut } from './schemas.js';
 
@@ -26,6 +26,17 @@ export function presentDish(dish: Dish, lang: Language): DishOut {
   };
 }
 
+/** Why a restaurant has no menu: its no-menu reason, or what kind of source failure it was. */
+export function explainNoMenu(status: Exclude<DayStatus, { kind: 'open' }>): {
+  reason: NonNullable<RestaurantDayOut['reason']>;
+  holiday_name: string | null;
+} {
+  if (status.kind === 'error') {
+    return { reason: status.retryable ? 'source_unavailable' : 'source_error', holiday_name: null };
+  }
+  return { reason: status.reason, holiday_name: status.holidayName ?? null };
+}
+
 export function presentRestaurantDay(
   day: RestaurantDay,
   lang: Language,
@@ -45,10 +56,7 @@ export function presentRestaurantDay(
     unverifiable: 0,
   };
 
-  if (day.status.kind === 'error') return { ...out, reason: 'source_unavailable' };
-  if (day.status.kind === 'no_menu') {
-    return { ...out, reason: day.status.reason, holiday_name: day.status.holidayName ?? null };
-  }
+  if (day.status.kind !== 'open') return { ...out, ...explainNoMenu(day.status) };
 
   for (const course of day.status.courses) {
     const dishes: DishOut[] = [];

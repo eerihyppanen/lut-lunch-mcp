@@ -2,6 +2,7 @@ import type { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { beforeAll, describe, expect, it } from 'vitest';
 import type { FindDishesOutput } from '../../src/mcp/schemas.js';
 import { call, callText, connectClient } from '../helpers/connect.js';
+import { fakeService } from '../helpers/fakes.js';
 import { fixtureService } from '../helpers/fixture-service.js';
 
 let client: Client;
@@ -45,12 +46,19 @@ describe('find_dishes', () => {
       ['yolo', 'Vegetable tikka masala'],
     ]);
     expect(out.days_without_data).toEqual([
-      { date: '2026-10-24', restaurant_id: 'lut-buffet', status: 'no_menu', reason: 'weekend' },
+      {
+        date: '2026-10-24',
+        restaurant_id: 'lut-buffet',
+        status: 'no_menu',
+        reason: 'weekend',
+        holiday_name: null,
+      },
       {
         date: '2026-10-24',
         restaurant_id: 'bistro-skinnarila',
         status: 'no_menu',
         reason: 'weekend',
+        holiday_name: null,
       },
     ]);
     expect(out.notice).toMatch(/confirm at the restaurant/);
@@ -78,6 +86,39 @@ describe('find_dishes', () => {
     expect(names).not.toContain('Tuna and eggs (Inc. light soup)');
     expect(names).not.toContain('Chocolate mousse/chocolate cake (L,MU)');
     expect(out.unverifiable).toBeGreaterThan(0);
+  });
+
+  it('names the public holiday for days without data', async () => {
+    const holiday = await connectClient(
+      fakeService([
+        {
+          restaurantId: 'lut-buffet',
+          date: '2026-10-31',
+          status: { kind: 'no_menu', reason: 'public_holiday', holidayName: "All Saints' Day" },
+          stale: false,
+          fetchedAt: '2026-10-23T09:00:00.000Z',
+        },
+      ]),
+    );
+    const args = {
+      query: 'lohi',
+      from: '2026-10-31',
+      to: '2026-10-31',
+      restaurants: ['lut-buffet'],
+    };
+    const out = await call<FindDishesOutput>(holiday, 'find_dishes', args);
+    expect(out.days_without_data).toEqual([
+      {
+        date: '2026-10-31',
+        restaurant_id: 'lut-buffet',
+        status: 'no_menu',
+        reason: 'public_holiday',
+        holiday_name: "All Saints' Day",
+      },
+    ]);
+    expect(await callText(holiday, 'find_dishes', args)).toContain(
+      "LUT Buffet on 2026-10-31: public holiday (All Saints' Day)",
+    );
   });
 
   it('truncates at limit', async () => {

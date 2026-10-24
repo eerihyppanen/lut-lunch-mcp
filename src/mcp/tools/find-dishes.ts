@@ -13,7 +13,7 @@ import { READ_ONLY } from '../annotations.js';
 import { ToolInputError, runTool } from '../errors.js';
 import { hasFilters, judgeDish, type DishFilter } from '../filters.js';
 import { formatMatches } from '../format.js';
-import { NOTICE, localName, presentDish } from '../present.js';
+import { NOTICE, explainNoMenu, localName, presentDish } from '../present.js';
 import {
   AllergenInput,
   DateInput,
@@ -92,7 +92,7 @@ export async function findDishes(
         date: row.date,
         restaurant_id: row.restaurantId,
         status: row.status.kind,
-        reason: row.status.kind === 'error' ? 'source_unavailable' : row.status.reason,
+        ...explainNoMenu(row.status),
       });
       continue;
     }
