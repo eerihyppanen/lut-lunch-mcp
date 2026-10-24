@@ -2,7 +2,7 @@ import { load } from 'cheerio/slim';
 import { daysBetween, isValidIsoDate } from '../calendar/dates.js';
 import { SourceError, type HttpClient } from '../http.js';
 import { aalefAllergens } from '../normalize/allergens.js';
-import { parseCodes } from '../normalize/codes.js';
+import { KNOWN_CODES, parseCodes } from '../normalize/codes.js';
 import { dietTags } from '../normalize/diets.js';
 import type { Course, Dish, LocalizedName } from '../types.js';
 import type { MenuSource, SourceResult } from './source.js';
@@ -31,10 +31,21 @@ function splitTitle(title: string): LocalizedName {
   return { fi: title.slice(0, slash).trim(), en: title.slice(slash + 1).trim() || null };
 }
 
+/** Codes written in parentheses inside a dish line, e.g. "suklaakakku(L,MU)" → ["L", "MU"]. */
+function codesInName(line: string): string[] {
+  return [...line.matchAll(/\(([^()]+)\)/g)]
+    .map((m) => parseCodes(m[1]!))
+    .filter((codes) => codes.length > 0 && codes.every((c) => KNOWN_CODES.aalef.has(c)))
+    .flat();
+}
+
 function parseDish(lines: string[], codes: string[], course: LocalizedName): Dish {
   const [fi = '', en, ...extras] = lines;
   const extra = extras.join(', ');
   const fiExtra = LIGHT_SOUP.test(extra) ? 'sis. kevytkeitto' : extra;
+  // Name codes describe part of the dish (one item of "mousse/cake"), so they add allergen
+  // evidence but never diet labels, which must hold for the whole dish.
+  const nameCodes = lines.flatMap(codesInName);
   return {
     name: {
       fi: extra ? `${fi} (${fiExtra})` : fi,
@@ -42,7 +53,7 @@ function parseDish(lines: string[], codes: string[], course: LocalizedName): Dis
     },
     tags: dietTags('aalef', codes, course),
     codes,
-    allergens: aalefAllergens(codes),
+    allergens: aalefAllergens([...codes, ...nameCodes]),
   };
 }
 

@@ -38,6 +38,15 @@ describe('parseAalefPage', () => {
     });
   });
 
+  it('reads allergen codes written inside a dish name', () => {
+    // Row codes are "L,G"; the name adds "(L,MU)" for the chocolate cake (egg).
+    const fri = parseAalefPage(html, '2026-10-23').days['2026-10-23']!;
+    const dessert = fri.find((c) => c.name.en === 'Dessert')!.dishes[0]!;
+    expect(dessert.name.en).toBe('Chocolate mousse/chocolate cake (L,MU)');
+    expect(dessert.allergens.contains).toEqual(['egg']);
+    expect(dessert.tags).toEqual(['gluten_free', 'lactose_free', 'low_lactose']); // from row codes only
+  });
+
   it('throws when no day headings exist', () => {
     expect(() => parseAalefPage('<html><body><h3>Hello</h3></body></html>', '2026-10-23')).toThrow(
       SourceError,
