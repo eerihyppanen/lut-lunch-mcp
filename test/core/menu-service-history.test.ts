@@ -111,8 +111,8 @@ describe('LiveMenuService with history', () => {
     const empty: HistoryStore = {
       load: () => Promise.resolve(indexHistory(buildHistoryDataset([], 'T'))),
     };
-    const [unknown] = await svc(empty).getDays(['2026-10-24'], ['yolo']);
-    expect(statusOf(unknown!)).toBe('no_menu:history_not_available');
+    const [inferred] = await svc(empty).getDays(['2026-10-24'], ['yolo']);
+    expect(statusOf(inferred!)).toBe('no_menu:weekend'); // no record: inferred as before
   });
 
   it('asks the live source when a recorded failure is inside the live window (code review #3)', async () => {

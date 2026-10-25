@@ -31,14 +31,13 @@ function resolveStatus(result: SourceResult, date: string, today: string): DaySt
   if (courses.some((c) => c.dishes.length > 0)) return { kind: 'open', courses };
 
   // Outside what the source published: past dates are history, later dates aren't out yet.
-  // Yolo's page can start after today (on Sundays, and in the evening once it has moved on):
-  // today is then no longer known, while later days before coverage are still explained by
-  // holiday / weekend / nothing listed below.
+  // A date between today and the start of coverage (Yolo's page can start after today) is
+  // still explained by holiday / weekend / nothing listed below.
   const { coverage } = result;
   if (!coverage || date > coverage.through) {
     return noMenu(date < today ? 'history_not_available' : 'not_published_yet');
   }
-  if (date < coverage.from && date <= today) return noMenu('history_not_available');
+  if (date < coverage.from && date < today) return noMenu('history_not_available');
 
   const holiday = finnishHoliday(date);
   if (holiday) return noMenu('public_holiday', holiday);
@@ -63,9 +62,6 @@ function recordedDay(
   const status = entry.status.kind === 'error' ? noMenu('history_not_available') : entry.status;
   return { restaurantId: id, date, status, stale: false, fetchedAt: day.collectedAt };
 }
-
-const isUnknown = (status: DayStatus): boolean =>
-  status.kind === 'no_menu' && status.reason === 'history_not_available';
 
 const toSourceError = (error: unknown): SourceError =>
   error instanceof SourceError ? error : new SourceError(String(error), false);
@@ -187,23 +183,27 @@ export class LiveMenuService implements MenuService {
         fetchedAt: new Date(unit.fetchedAt).toISOString(),
       };
     });
-    return this.withRecordedToday(rows, id, today, history);
+    const todayUnit = dates.includes(today) ? results.get(source.unitKey(today)) : undefined;
+    const coverage = todayUnit instanceof SourceError ? null : todayUnit?.value.coverage;
+    const movedOn = !!coverage && today < coverage.from;
+    return movedOn ? this.withRecordedMenu(rows, id, today, history) : rows;
   }
 
-  /** Today, once the source has moved on (Yolo in the evening), as the morning recorded it. */
-  private async withRecordedToday(
+  /**
+   * Today once the source has moved past it (Yolo in the evening): a menu recorded this morning
+   * beats what the remaining week implies.
+   */
+  private async withRecordedMenu(
     rows: RestaurantDay[],
     id: RestaurantId,
     today: string,
     history: HistoryGetter,
   ): Promise<RestaurantDay[]> {
-    const i = rows.findIndex((r) => r.date === today && isUnknown(r.status));
-    if (i < 0) return rows;
     const loaded = await history();
     if (!loaded || loaded instanceof SourceError) return rows;
     const recorded = recordedDay(loaded, id, today, false);
-    if (!recorded || isUnknown(recorded.status)) return rows;
-    return rows.map((row, j) => (j === i ? recorded : row));
+    if (recorded?.status.kind !== 'open') return rows;
+    return rows.map((row) => (row.date === today ? recorded : row));
   }
 }
 

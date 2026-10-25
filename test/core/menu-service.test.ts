@@ -135,9 +135,8 @@ describe('LiveMenuService', () => {
     });
   });
 
-  it('explains days before a source’s coverage without inventing today (code review #1)', async () => {
-    // Yolo's page can start after today: on a Sunday it lists Monday onwards, and in the evening
-    // it has already moved past today. Today is then unknown, not "weekend" or "nothing listed".
+  it('does not call days before a source’s coverage "not published yet"', async () => {
+    // Yolo's page can start after today (on a Sunday it lists Monday onwards).
     const yolo = fakeSource('yolo', {
       days: { '2026-10-26': [course] },
       coverage: { from: '2026-10-26', through: '2026-10-27' },
@@ -147,7 +146,7 @@ describe('LiveMenuService', () => {
       ['yolo'],
     );
     expect(days.map((d) => [d.date, statusOf(d)])).toEqual([
-      ['2026-10-23', 'no_menu:history_not_available'], // today, no longer listed
+      ['2026-10-23', 'no_menu:none_listed'],
       ['2026-10-24', 'no_menu:weekend'],
       ['2026-10-25', 'no_menu:weekend'],
       ['2026-10-26', 'open'],
