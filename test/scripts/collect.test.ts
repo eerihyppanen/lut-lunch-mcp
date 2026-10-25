@@ -1,4 +1,4 @@
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -30,6 +30,10 @@ const open: Make = (restaurantId, date) => ({
 const err: Make = (restaurantId, date) => ({
   ...open(restaurantId, date),
   status: { kind: 'error', retryable: true },
+});
+const none: Make = (restaurantId, date) => ({
+  ...open(restaurantId, date),
+  status: { kind: 'no_menu', reason: 'none_listed' },
 });
 
 /** A service whose restaurants answer with the given statuses for any requested date. */
@@ -72,7 +76,7 @@ describe('runCollect', () => {
       now,
       log,
     });
-    expect(r).toEqual({ exitCode: 0, wroteDay: true, wroteHistory: true });
+    expect(r).toEqual({ exitCode: 0, wroteDay: true, wroteHistory: true, backfilled: [] });
     const day = readJson<HistoryDay>(dayFile('2026-10-26'));
     expect(day.restaurants.map((x: { status: { kind: string } }) => x.status.kind)).toEqual([
       'open',
@@ -124,7 +128,7 @@ describe('runCollect', () => {
       now: later,
       log,
     });
-    expect(r).toEqual({ exitCode: 0, wroteDay: false, wroteHistory: false });
+    expect(r).toEqual({ exitCode: 0, wroteDay: false, wroteHistory: false, backfilled: [] });
     expect(readFileSync(join(dataDir, 'history.json'), 'utf8')).toBe(before);
   });
 
@@ -154,5 +158,59 @@ describe('runCollect', () => {
       log: (line) => lines.push(line),
     });
     expect(lines).toEqual(['lut-buffet: open', 'bistro-skinnarila: open', 'yolo: error']);
+  });
+
+  it('backfills earlier days of the week with menus only (code review #2)', async () => {
+    const statuses = (date: string) =>
+      readJson<HistoryDay>(dayFile(date)).restaurants.map((x) =>
+        x.status.kind === 'no_menu' ? x.status.reason : x.status.kind,
+      );
+    await runCollect({
+      dataDir,
+      date: '2026-10-26',
+      failOnError: false,
+      service: svc(err, none, open),
+      now,
+      log,
+    });
+    const asked: string[][] = [];
+    const service = svc(open, open, none);
+    const r = await runCollect({
+      dataDir,
+      date: '2026-10-28',
+      failOnError: false,
+      service: { getDays: (dates, ids) => (asked.push(dates), service.getDays(dates, ids)) },
+      now: later,
+      log,
+    });
+    expect(asked).toEqual([['2026-10-26', '2026-10-27', '2026-10-28']]);
+    expect(r.backfilled).toEqual(['2026-10-26', '2026-10-27']);
+    expect(statuses('2026-10-26')).toEqual(['open', 'open', 'open']); // menus fill in, Yolo kept
+    expect(statuses('2026-10-27')).toEqual(['open', 'open', 'error']); // missed run: not collected
+    expect(statuses('2026-10-28')).toEqual(['open', 'open', 'none_listed']);
+    const hist = readJson<HistoryDataset>(join(dataDir, 'history.json'));
+    expect(hist.days.map((d) => d.date)).toEqual(['2026-10-26', '2026-10-27', '2026-10-28']);
+  });
+
+  it('updates history.json without rereading every day file (code review #9)', async () => {
+    const run = (date: string) =>
+      runCollect({ dataDir, date, failOnError: false, service: svc(open, open, open), now, log });
+    await run('2026-10-19');
+    // An old day file the run has no reason to read.
+    mkdirSync(join(dataDir, 'days', '2026', '09'), { recursive: true });
+    writeFileSync(dayFile('2026-09-01'), 'not json');
+    await run('2026-10-26');
+    const hist = readJson<HistoryDataset>(join(dataDir, 'history.json'));
+    expect(hist.days.map((d) => d.date)).toEqual(['2026-10-19', '2026-10-26']);
+  });
+
+  it('rebuilds history.json from the day files when it is missing or unreadable', async () => {
+    const run = (date: string) =>
+      runCollect({ dataDir, date, failOnError: false, service: svc(open, open, open), now, log });
+    await run('2026-10-19');
+    writeFileSync(join(dataDir, 'history.json'), '{"schema": 2}');
+    await run('2026-10-26');
+    const hist = readJson<HistoryDataset>(join(dataDir, 'history.json'));
+    expect(hist).toMatchObject({ schema: 1, firstDate: '2026-10-19', lastDate: '2026-10-26' });
   });
 });

@@ -1,23 +1,24 @@
 // Daily menu history collector (spec §5). Run by .github/workflows/collect.yml:
 //   tsx scripts/collect.ts [--data-dir data] [--date YYYY-MM-DD] [--fail-on-error]
 // Fetches one day for every restaurant, merges it into days/YYYY/MM/YYYY-MM-DD.json and
-// rebuilds history.json. Files are only rewritten when their content changes, so a repeat
-// run on a complete day leaves the data branch untouched.
+// updates history.json. Earlier days of the same week are fetched too, and any menu a missed
+// run did not record is filled in. Files are only rewritten when their content changes, so a
+// repeat run on a complete day leaves the data branch untouched.
 
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { helsinkiToday } from '../src/core/calendar/dates.js';
-import { HistoryDaySchema } from '../src/core/history/schema.js';
+import { addDays, datesInRange, helsinkiToday, isoWeekMonday } from '../src/core/calendar/dates.js';
+import { HistoryDatasetSchema, HistoryDaySchema } from '../src/core/history/schema.js';
 import {
   buildHistoryDataset,
   mergeHistoryDay,
   toHistoryDay,
 } from '../src/core/history/snapshot.js';
-import type { HistoryDay } from '../src/core/history/types.js';
+import type { HistoryDataset, HistoryDay } from '../src/core/history/types.js';
 import { USER_AGENT, createFetchHttpClient } from '../src/core/http.js';
 import { createLiveMenuService } from '../src/core/menu-service.js';
-import { RESTAURANT_IDS, type MenuService } from '../src/core/types.js';
+import { RESTAURANT_IDS, type MenuService, type RestaurantDay } from '../src/core/types.js';
 import { VERSION } from '../src/version.js';
 
 export interface CollectOptions {
@@ -33,6 +34,8 @@ export interface CollectResult {
   exitCode: 0 | 1;
   wroteDay: boolean;
   wroteHistory: boolean;
+  /** Earlier days of the week whose files a menu was added to. */
+  backfilled: string[];
 }
 
 function dayPath(dataDir: string, date: string): string {
@@ -55,6 +58,34 @@ function allDays(dataDir: string): HistoryDay[] {
     .map((file) => readDay(join(root, file)));
 }
 
+/** The previous history.json, or null when it is missing or unreadable (then rebuild). */
+function readHistory(path: string): HistoryDataset | null {
+  if (!existsSync(path)) return null;
+  try {
+    const parsed = HistoryDatasetSchema.safeParse(JSON.parse(readFileSync(path, 'utf8')));
+    return parsed.success && parsed.data.schema === 1 ? (parsed.data as HistoryDataset) : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Merges a fetch into the day's file; the merged day when the file changed, else null. */
+function mergeIntoFile(dataDir: string, incoming: HistoryDay): HistoryDay | null {
+  const path = dayPath(dataDir, incoming.date);
+  const { day, changed } = mergeHistoryDay(existsSync(path) ? readDay(path) : null, incoming);
+  if (!changed) return null;
+  writeFile(path, `${JSON.stringify(day, null, 2)}\n`);
+  return day;
+}
+
+/**
+ * A past day of this week as the live sources show it now. Only menus are trusted: anything
+ * else is recorded as "not collected", which never replaces what a run on the day recorded.
+ */
+function backfillRow(row: RestaurantDay): RestaurantDay {
+  return row.status.kind === 'open' ? row : { ...row, status: { kind: 'error', retryable: true } };
+}
+
 /** Writes `content` to `path`, creating folders as needed. Callers decide whether to write. */
 function writeFile(path: string, content: string): void {
   mkdirSync(dirname(path), { recursive: true });
@@ -63,28 +94,45 @@ function writeFile(path: string, content: string): void {
 
 export async function runCollect(opts: CollectOptions): Promise<CollectResult> {
   const { dataDir, date } = opts;
-  const rows = await opts.service.getDays([date], [...RESTAURANT_IDS]);
-  const incoming = toHistoryDay(date, rows, opts.now().toISOString(), VERSION);
+  const collectedAt = opts.now().toISOString();
+  const earlier = datesInRange(isoWeekMonday(date), addDays(date, -1));
+  const rows = await opts.service.getDays([...earlier, date], [...RESTAURANT_IDS]);
+  const recordFor = (d: string, map: (row: RestaurantDay) => RestaurantDay = (row) => row) =>
+    toHistoryDay(d, rows.filter((r) => r.date === d).map(map), collectedAt, VERSION);
 
+  const changedDays: HistoryDay[] = [];
+  for (const d of earlier) {
+    const day = mergeIntoFile(dataDir, recordFor(d, backfillRow));
+    if (day) changedDays.push(day);
+  }
+  const backfilled = changedDays.map((d) => d.date);
   const path = dayPath(dataDir, date);
-  const { day, changed } = mergeHistoryDay(existsSync(path) ? readDay(path) : null, incoming);
-  if (changed) writeFile(path, `${JSON.stringify(day, null, 2)}\n`);
+  const merged = mergeIntoFile(dataDir, recordFor(date));
+  if (merged) changedDays.push(merged);
+  const day = merged ?? readDay(path);
 
-  // history.json is regenerated from the day files; generatedAt alone is not a change.
+  // history.json is updated from its previous content, or rebuilt from every day file when
+  // that can't be read. generatedAt alone is not a change.
   const historyPath = join(dataDir, 'history.json');
-  const dataset = buildHistoryDataset(allDays(dataDir), opts.now().toISOString());
+  const previous = readHistory(historyPath);
+  const days = new Map((previous?.days ?? allDays(dataDir)).map((d) => [d.date, d]));
+  for (const d of changedDays) days.set(d.date, d);
+  const dataset = buildHistoryDataset([...days.values()], collectedAt);
   const withoutTime = (value: object) => JSON.stringify({ ...value, generatedAt: '' });
-  const previous = existsSync(historyPath)
-    ? (JSON.parse(readFileSync(historyPath, 'utf8')) as object)
-    : null;
   const wroteHistory = !previous || withoutTime(previous) !== withoutTime(dataset);
   if (wroteHistory) writeFile(historyPath, `${JSON.stringify(dataset)}\n`);
 
+  for (const d of backfilled) opts.log(`backfilled ${d}`);
   for (const { id, status } of day.restaurants) {
     opts.log(`${id}: ${status.kind}${status.kind === 'no_menu' ? ` ${status.reason}` : ''}`);
   }
   const failed = day.restaurants.some((r) => r.status.kind === 'error');
-  return { exitCode: opts.failOnError && failed ? 1 : 0, wroteDay: changed, wroteHistory };
+  return {
+    exitCode: opts.failOnError && failed ? 1 : 0,
+    wroteDay: merged !== null,
+    wroteHistory,
+    backfilled,
+  };
 }
 
 function argValue(args: string[], name: string): string | undefined {
@@ -104,7 +152,8 @@ if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
   });
   console.error(
     `day file ${result.wroteDay ? 'written' : 'unchanged'}, ` +
-      `history.json ${result.wroteHistory ? 'written' : 'unchanged'}`,
+      `history.json ${result.wroteHistory ? 'written' : 'unchanged'}, ` +
+      `${result.backfilled.length} earlier day(s) backfilled`,
   );
   process.exit(result.exitCode);
 }

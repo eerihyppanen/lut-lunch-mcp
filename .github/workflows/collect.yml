@@ -1,12 +1,14 @@
 name: Collect history
 
 # Records each day's menus into the data branch (spec docs/specs/2026-10-24-phase-2-history-design.md §5).
-# The 06:30 run records the day; the 10:30 run retries restaurants that failed and makes the job
-# fail (and email the owner) if any are still failing.
+# The 06:30 run records the day; 08:30 and 10:30 retry restaurants that failed, and the 10:30 run
+# makes the job fail (and email the owner) if any are still failing. GitHub can skip scheduled
+# runs, so every run also fills in menus missing from earlier days of the same week.
 on:
   schedule:
     - cron: '30 6 * * *' # 09:30 Helsinki in summer, 08:30 in winter
-    - cron: '30 10 * * *' # retry
+    - cron: '30 8 * * *' # retry
+    - cron: '30 10 * * *' # last retry
   workflow_dispatch:
 
 permissions:
