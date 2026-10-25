@@ -21,8 +21,8 @@
     {
       "id": "yolo",
       "status": {
-        "kind": "no_menu",
-        "reason": "weekend"
+        "kind": "error",
+        "retryable": true
       }
     }
   ]
