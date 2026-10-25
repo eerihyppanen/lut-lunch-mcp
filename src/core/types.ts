@@ -70,7 +70,8 @@ export type NoMenuReason =
 export type DayStatus =
   | { kind: 'open'; courses: Course[] }
   | { kind: 'no_menu'; reason: NoMenuReason; holidayName?: string }
-  | { kind: 'error'; retryable: boolean };
+  /** `origin: 'history'`: the recorded history could not be loaded, not the restaurant's source. */
+  | { kind: 'error'; retryable: boolean; origin?: 'history' };
 
 export interface RestaurantDay {
   restaurantId: RestaurantId;

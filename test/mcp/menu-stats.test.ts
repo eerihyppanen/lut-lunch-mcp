@@ -97,6 +97,19 @@ describe('menu_stats', () => {
     expect(out.days[0]!.restaurants[0]!.status).toBe('open');
   });
 
+  it('blames the history, not the restaurant, when it cannot be loaded (code review #4)', async () => {
+    const client = await connectClient(historyService({ history: 'failing' }));
+    const args = { date: '2026-10-20', restaurants: ['lut-buffet'] };
+    const out = await call<GetMenuOutput>(client, 'get_menu', args);
+    expect(out.days[0]!.restaurants[0]).toMatchObject({
+      status: 'error',
+      reason: 'history_unavailable',
+    });
+    expect(await callText(client, 'get_menu', args)).toContain(
+      'menu history unavailable, try again later',
+    );
+  });
+
   const failingHistory = (error: Error): MenuService => ({
     ...fakeService([], '2026-10-30'),
     loadHistory: () => Promise.reject(error),

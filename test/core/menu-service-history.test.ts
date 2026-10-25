@@ -53,7 +53,7 @@ describe('LiveMenuService with history', () => {
       ['lut-buffet'],
     );
     expect(days.map((d) => d.status)).toEqual([
-      { kind: 'error', retryable: true }, // outside window: history needed
+      { kind: 'error', retryable: true, origin: 'history' }, // outside window: history needed
       { kind: 'no_menu', reason: 'history_not_available' }, // inside window: live (unpublished week)
     ]);
   });
@@ -86,7 +86,7 @@ describe('LiveMenuService with history', () => {
     const [today] = await svc.getDays(['2026-10-30'], ['lut-buffet']);
     expect(today!.status.kind).not.toBe('error');
     const [old] = await svc.getDays(['2026-10-20'], ['lut-buffet']);
-    expect(old!.status).toEqual({ kind: 'error', retryable: false });
+    expect(old!.status).toEqual({ kind: 'error', retryable: false, origin: 'history' });
   });
 
   it('shows the morning recorded menu for today once the source has moved on (code review #1)', async () => {

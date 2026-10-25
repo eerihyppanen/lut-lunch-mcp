@@ -82,6 +82,12 @@ describe('presentRestaurantDay', () => {
       {},
     );
     expect(err).toMatchObject({ status: 'error', reason: 'source_unavailable', courses: [] });
+    const history = presentRestaurantDay(
+      { ...day, status: { kind: 'error', retryable: true, origin: 'history' } },
+      'en',
+      {},
+    );
+    expect(history).toMatchObject({ status: 'error', reason: 'history_unavailable' }); // code review #4
     const holiday = presentRestaurantDay(
       {
         ...day,

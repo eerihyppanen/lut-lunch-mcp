@@ -61,6 +61,7 @@ const NoMenuReasonOut = z.enum([
   'history_not_available',
   'source_unavailable', // temporary: timeout, network error, server error
   'source_error', // permanent: the source answered with data that could not be read
+  'history_unavailable', // the recorded history could not be loaded; try again later
 ]);
 
 export const RestaurantDayOutSchema = z.object({

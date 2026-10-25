@@ -80,8 +80,9 @@ for clients that only show text.
 
 Each restaurant in a `get_menu` result has a `status` (`open`, `no_menu`, `error`) and, when it isn't
 open, a `reason`: `weekend`, `public_holiday` (with its name), `none_listed`, `not_published_yet`,
-`history_not_available`, `source_unavailable` (temporary outage; try again later) or `source_error`
-(the source answered with data the server couldn't read, e.g. after a site redesign).
+`history_not_available`, `source_unavailable` (temporary outage; try again later), `source_error`
+(the source answered with data the server couldn't read, e.g. after a site redesign) or
+`history_unavailable` (the recorded history needed for a past day could not be loaded).
 `find_dishes` lists those days in `days_without_data`, so "no matches" and "no data" are never
 confused.
 

@@ -151,7 +151,7 @@ export class LiveMenuService implements MenuService {
     for (const date of past) {
       if (loaded instanceof SourceError) {
         if (inWindow(date)) continue;
-        const status: DayStatus = { kind: 'error', retryable: loaded.retryable };
+        const status: DayStatus = { kind: 'error', retryable: loaded.retryable, origin: 'history' };
         fromHistory.set(date, { restaurantId: id, date, status, stale: false, fetchedAt: nowIso });
         continue;
       }

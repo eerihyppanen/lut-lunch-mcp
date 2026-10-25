@@ -32,7 +32,13 @@ export function explainNoMenu(status: Exclude<DayStatus, { kind: 'open' }>): {
   holiday_name: string | null;
 } {
   if (status.kind === 'error') {
-    return { reason: status.retryable ? 'source_unavailable' : 'source_error', holiday_name: null };
+    const reason =
+      status.origin === 'history'
+        ? 'history_unavailable'
+        : status.retryable
+          ? 'source_unavailable'
+          : 'source_error';
+    return { reason, holiday_name: null };
   }
   return { reason: status.reason, holiday_name: status.holidayName ?? null };
 }

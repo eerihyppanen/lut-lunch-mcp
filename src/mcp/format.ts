@@ -38,6 +38,7 @@ const REASON_TEXT: Record<Reason, string> = {
   history_not_available: 'past menus are not available',
   source_unavailable: 'menu source unavailable, try again later',
   source_error: 'the menu source could not be read (its site may have changed)',
+  history_unavailable: 'menu history unavailable, try again later',
 };
 
 function tagText(tags: DietTag[]): string {
