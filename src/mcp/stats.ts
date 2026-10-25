@@ -1,4 +1,4 @@
-import { datesInRange, weekdayName } from '../core/calendar/dates.js';
+import { WEEKDAYS, datesInRange, weekdayName } from '../core/calendar/dates.js';
 import type { History } from '../core/history/types.js';
 import { foldText } from '../core/normalize/text.js';
 import { RESTAURANT_IDS, type DietTag, type RestaurantId } from '../core/types.js';
@@ -21,8 +21,6 @@ export interface StatsQuery {
 
 type Stats = Pick<MenuStatsOutput, 'history' | 'matches' | 'groups' | 'top_dishes'>;
 type Seen = NonNullable<MenuStatsOutput['matches']['first_seen']>;
-
-const WEEKDAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
 /** Coverage of the whole history, independent of the query (spec §7 `history`). */
 function summarise(history: History): Stats['history'] {
@@ -47,7 +45,7 @@ function summarise(history: History): Stats['history'] {
 /** Every group key in the period, in display order, so empty groups are listed too. */
 function groupKeys(q: StatsQuery, history: History): string[] {
   if (q.groupBy === 'restaurant') return RESTAURANT_IDS.filter((id) => q.restaurants.includes(id));
-  if (q.groupBy === 'weekday') return WEEKDAYS;
+  if (q.groupBy === 'weekday') return [...WEEKDAYS];
   if (q.groupBy === 'none') return ['all'];
   // Months: only where history can have data, so a wide `from` doesn't list decades of zeros.
   const from = history.firstDate && history.firstDate > q.from ? history.firstDate : q.from;

@@ -74,6 +74,9 @@ export async function menuStats(
   // Resolve given dates before loading anything, so a bad date fails fast.
   const givenFrom = input.from === undefined ? undefined : resolveDateInput(input.from, today);
   const to = input.to === undefined ? today : resolveDateInput(input.to, today);
+  if (givenFrom !== undefined && to < givenFrom) {
+    throw new ToolInputError(`"to" (${to}) is before "from" (${givenFrom}).`);
+  }
   const history = await loadHistory(service);
   // A defaulted `from` never lands after `to`, e.g. when `to` is before history starts.
   const firstDay = history.firstDate ?? today;

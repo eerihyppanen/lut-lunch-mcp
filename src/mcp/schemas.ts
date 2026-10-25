@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { WEEKDAYS } from '../core/calendar/dates.js';
 import { ALLERGENS, DIET_TAGS, RESTAURANT_IDS } from '../core/types.js';
 
 // Input and output schemas shared by get_menu and find_dishes. Output field names are
@@ -6,16 +7,6 @@ import { ALLERGENS, DIET_TAGS, RESTAURANT_IDS } from '../core/types.js';
 
 export const LANGUAGES = ['en', 'fi'] as const;
 export type Language = (typeof LANGUAGES)[number];
-
-const WEEKDAYS = [
-  'Monday',
-  'Tuesday',
-  'Wednesday',
-  'Thursday',
-  'Friday',
-  'Saturday',
-  'Sunday',
-] as const;
 
 // Validated by resolveDateInput so the error can tell the caller which forms are accepted.
 export const DateInput = z

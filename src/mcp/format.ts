@@ -161,12 +161,14 @@ export function formatStats(out: MenuStatsOutput): string {
     (RESTAURANT_IDS as readonly string[]).includes(key)
       ? getRestaurant(key as RestaurantId).name
       : key;
-  lines.push(
-    '  ' +
-      out.groups
-        .map((g) => `${label(g.key)}: ${g.days_served} of ${plural(g.open_days, 'open day')}`)
-        .join(' · '),
-  );
+  if (out.groups.length) {
+    lines.push(
+      '  ' +
+        out.groups
+          .map((g) => `${label(g.key)}: ${g.days_served} of ${plural(g.open_days, 'open day')}`)
+          .join(' · '),
+    );
+  }
   if (out.top_dishes.length) {
     lines.push(
       'Most common: ' +

@@ -1,18 +1,17 @@
 // Dates are plain YYYY-MM-DD strings in Europe/Helsinki. Arithmetic runs on UTC midnights,
 // so daylight saving changes can never shift a date. Only helsinkiToday looks at a clock.
 
-export type Weekday =
-  'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday' | 'Saturday' | 'Sunday';
-
-const WEEKDAYS: readonly Weekday[] = [
-  'Sunday',
+/** Monday-first, as in the ISO week used throughout. */
+export const WEEKDAYS = [
   'Monday',
   'Tuesday',
   'Wednesday',
   'Thursday',
   'Friday',
   'Saturday',
-];
+  'Sunday',
+] as const;
+export type Weekday = (typeof WEEKDAYS)[number];
 
 const DAY_MS = 86_400_000;
 const ISO_DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
@@ -75,7 +74,7 @@ export function datesInRange(from: string, to: string): string[] {
 }
 
 export function weekdayName(date: string): Weekday {
-  return WEEKDAYS[toUtc(date).getUTCDay()]!;
+  return WEEKDAYS[(toUtc(date).getUTCDay() + 6) % 7]!;
 }
 
 export function isWeekend(date: string): boolean {

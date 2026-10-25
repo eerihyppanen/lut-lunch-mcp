@@ -140,4 +140,22 @@ describe('menu_stats', () => {
     });
     expect(out.matches.first_seen).toMatchObject({ dish: 'Itämaista linssikeittoa' });
   });
+
+  it('reports reversed dates before trying to load the history (code review)', async () => {
+    const client = await connectClient(failingHistory(new SourceError('down', true)));
+    const res = await client.callTool({
+      name: 'menu_stats',
+      arguments: { from: '2026-11-05', to: '2026-11-01' },
+    });
+    expect(res.isError).toBe(true);
+    expect(JSON.stringify(res.content)).toContain('is before');
+  });
+
+  it('prints no empty group line when no group falls in the period (code review)', async () => {
+    const text = await callText(await withHistory(), 'menu_stats', {
+      group_by: 'month',
+      to: '2026-10-10',
+    });
+    expect(text).not.toMatch(/^\s*$/m);
+  });
 });
