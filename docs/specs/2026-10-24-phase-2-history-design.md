@@ -129,13 +129,21 @@ tsx scripts/collect.ts [--data-dir data] [--date YYYY-MM-DD] [--fail-on-error]
 ```
 
 1. `date` defaults to today in Helsinki.
-2. Fetch that date for all restaurants with `createLiveMenuService` (live sources only).
-3. Turn the result into a `HistoryDay` (`toHistoryDay`).
+2. Fetch that date and the earlier days of its ISO week for all restaurants with
+   `createLiveMenuService` (live sources only).
+3. Turn the result into a `HistoryDay` (`toHistoryDay`). Statuses are recorded as a fetch on the
+   day itself sees them: `not_published_yet` becomes `none_listed`, and `history_not_available`
+   (the source no longer lists the day) becomes `error`, i.e. not collected.
 4. If a day file already exists, merge (`mergeHistoryDay`, §5.2). Write the file only if the merged
    content differs from what is on disk (ignoring `collectedAt` when nothing else changed).
-5. Rebuild `history.json` from all day files (`buildHistoryDataset`) and write it if it changed.
-6. Print a one-line summary per restaurant to stderr.
-7. With `--fail-on-error`, exit 1 if any restaurant is still `error` after merging. Without it, exit
+5. Backfill (added in 0.2.1): the earlier days of the week are merged the same way, but only their
+   `open` entries are trusted; anything else is recorded as `error`, which never replaces a
+   recorded entry. A missed run's menus are filled in while the source still lists the week (LUT
+   Buffet and Bistro; Yolo drops past days).
+6. Update `history.json` from its previous content with the changed days (`buildHistoryDataset`)
+   and write it if it changed. If it is missing or unreadable, rebuild it from all day files.
+7. Print a one-line summary per restaurant to stderr.
+8. With `--fail-on-error`, exit 1 if any restaurant is still `error` after merging. Without it, exit
    0 even when a source failed (the retry run follows).
 
 ### 5.2 Merge rule (per restaurant)
@@ -147,7 +155,9 @@ changed something.
 
 ### 5.3 Workflow — `.github/workflows/collect.yml`
 
-- Triggers: `schedule` at `30 6 * * *` and `30 10 * * *` (UTC), plus `workflow_dispatch`.
+- Triggers: `schedule` at `30 6 * * *`, `30 8 * * *` and `30 10 * * *` (UTC), plus
+  `workflow_dispatch`. GitHub can skip scheduled runs; the extra run and the backfill (§5.1) cover
+  for that.
 - `permissions: contents: write`; `concurrency: { group: collect, cancel-in-progress: false }`.
 - Steps:
   1. Check out `main` (code).
@@ -205,17 +215,21 @@ interface HistoryStore {
 
 ### 6.3 Past dates in `LiveMenuService`
 
-For each requested date before today (today and later are unchanged):
+For each requested date before today:
 
-1. Load the history (only when the request contains a past date).
+1. Load the history (only when the request contains a past date). The download runs in parallel
+   with the live sources for today and later.
 2. Day recorded and restaurant `open` or `no_menu` → that status, `stale: false`,
    `fetchedAt` = the day's `collectedAt`.
-3. Day recorded but restaurant `error` → `no_menu / history_not_available` (the past cannot be
-   fetched again).
+3. Day recorded but restaurant `error` → inside the 7-day window the live source is asked again;
+   outside it `no_menu / history_not_available` (the past cannot be fetched again).
 4. Day not recorded, or history failed to load → phase 1 behaviour: live sources inside the
    7-day window, otherwise `no_menu / history_not_available`. Exception: if the history failed to
-   load and the date is outside the window, the status is `error` with the load error's `retryable`
-   (shown as `source_unavailable` / `source_error`), because trying later can help.
+   load and the date is outside the window, the status is `error` with `origin: 'history'`
+   (shown as `history_unavailable`), because trying later can help.
+
+Today is answered live, except when the source has already moved past it (Yolo's page drops today
+in the evening): a menu recorded for today then replaces what the remaining week implies.
 
 `WINDOW_PAST_DAYS` keeps its meaning (how far back live sources are asked); dates further back are
 now served from history instead of being refused.
@@ -325,11 +339,12 @@ later." (retryable) or the schema message (§4.3). No recorded days → normal r
 | Situation | Behaviour |
 |---|---|
 | History download fails, past date inside 7-day window | Live sources as in phase 1 |
-| History download fails, older past date | `error` → `source_unavailable` (try later) |
+| History download fails, older past date | `error` → `history_unavailable` (try later) |
 | History download fails, `menu_stats` | Tool error, retryable wording |
 | Unknown history schema | Non-retryable error asking to update the package |
-| Day recorded, restaurant collection failed | `history_not_available` |
-| Collector: one source fails | Day file written with `error`; 10:30 run retries; job fails if still `error` |
+| Day recorded, restaurant collection failed | Live source inside the 7-day window, else `history_not_available` |
+| Collector: one source fails | Day file written with `error`; 08:30 and 10:30 runs retry; job fails if still `error` at 10:30 |
+| Collector: a scheduled run is skipped | Later runs that week backfill the menus the sources still list |
 | Collector: run fails entirely | No commit; `menu_stats` reports the day in `days_missing` |
 
 ## 9. Testing
@@ -341,7 +356,7 @@ later." (retryable) or the schema message (§4.3). No recorded days → normal r
   menu, `--fail-on-error` exit codes, no rewrite when nothing changed.
 - **Remote store:** valid dataset indexed by date, invalid shape and unknown schema → `SourceError`,
   caching through `CachedLoader`.
-- **Menu service:** past recorded day → history status; recorded `error` → `history_not_available`;
+- **Menu service:** past recorded day → history status; recorded `error` → live inside the window, else `history_not_available`;
   unrecorded day inside / outside the window; history load failure inside / outside the window.
 - **Statistics:** a fixture `History` built from the phase 1 fixtures plus a few synthetic days, with
   exact expected counts, first/last seen, each `group_by`, `top_dishes` order and ties, language,
