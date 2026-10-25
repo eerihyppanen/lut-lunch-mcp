@@ -1,10 +1,16 @@
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { runCollect } from '../../scripts/collect.js';
 import type { HistoryDataset, HistoryDay } from '../../src/core/history/types.js';
-import type { Course, MenuService, RestaurantDay, RestaurantId } from '../../src/core/types.js';
+import {
+  RESTAURANT_IDS,
+  type Course,
+  type MenuService,
+  type RestaurantDay,
+  type RestaurantId,
+} from '../../src/core/types.js';
 
 const course: Course = {
   name: { fi: 'Lounas', en: 'Lunch' },
@@ -190,6 +196,41 @@ describe('runCollect', () => {
     expect(statuses('2026-10-28')).toEqual(['open', 'open', 'none_listed']);
     const hist = readJson<HistoryDataset>(join(dataDir, 'history.json'));
     expect(hist.days.map((d) => d.date)).toEqual(['2026-10-26', '2026-10-27', '2026-10-28']);
+  });
+
+  it('backfills neither before the history starts nor days without a menu (review)', async () => {
+    const exists = (date: string) => existsSync(dayFile(date));
+    const first = await runCollect({
+      dataDir,
+      date: '2026-10-27',
+      failOnError: false,
+      service: svc(open, open, open),
+      now,
+      log,
+    });
+    expect(first.backfilled).toEqual([]);
+    expect(exists('2026-10-26')).toBe(false); // before the first recorded day
+    const byDate: Record<string, Make> = { '2026-10-28': open, '2026-10-29': none };
+    const r = await runCollect({
+      dataDir,
+      date: '2026-10-30',
+      failOnError: false,
+      service: {
+        getDays: (dates) =>
+          Promise.resolve(
+            dates.flatMap((d) =>
+              RESTAURANT_IDS.map((id) => (id === 'lut-buffet' ? (byDate[d] ?? open) : none)(id, d)),
+            ),
+          ),
+      },
+      now: later,
+      log,
+    });
+    expect(r.backfilled).toEqual(['2026-10-28']);
+    expect(exists('2026-10-29')).toBe(false); // nothing recovered: stays missing
+    expect(
+      readJson<HistoryDay>(dayFile('2026-10-28')).restaurants.map((x) => x.status.kind),
+    ).toEqual(['open', 'error', 'error']);
   });
 
   it('updates history.json without rereading every day file (code review #9)', async () => {

@@ -56,7 +56,7 @@ describe('history snapshots', () => {
     expect(JSON.stringify(day)).not.toMatch(/stale|fetchedAt/);
   });
 
-  it('records only what the source said about the day (code review #7, #1)', () => {
+  it('records only what the source said about the day (code review #7)', () => {
     const notPublished: RestaurantDay = {
       ...open('lut-buffet'),
       status: { kind: 'no_menu', reason: 'not_published_yet' },
@@ -74,7 +74,7 @@ describe('history snapshots', () => {
     expect(day.restaurants.map((r) => r.status)).toEqual([
       { kind: 'no_menu', reason: 'none_listed' }, // nothing published for a day being recorded
       { kind: 'open', courses: [course] },
-      { kind: 'error', retryable: true }, // the source no longer lists the day: not collected
+      { kind: 'error', retryable: true }, // a date the source no longer covers: not collected
     ]);
   });
 

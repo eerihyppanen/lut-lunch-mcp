@@ -100,9 +100,21 @@ export async function runCollect(opts: CollectOptions): Promise<CollectResult> {
   const recordFor = (d: string, map: (row: RestaurantDay) => RestaurantDay = (row) => row) =>
     toHistoryDay(d, rows.filter((r) => r.date === d).map(map), collectedAt, VERSION);
 
+  // history.json is updated from its previous content, or rebuilt from every day file when
+  // that can't be read (delete it to force a rebuild). generatedAt alone is not a change.
+  const historyPath = join(dataDir, 'history.json');
+  const previous = readHistory(historyPath);
+  const days = new Map((previous?.days ?? allDays(dataDir)).map((d) => [d.date, d]));
+  const firstDate = [...days.keys()].sort()[0];
+
+  // A backfilled day gets a file only when it recovers a menu, and never before the history
+  // starts; otherwise a missed day stays missing.
   const changedDays: HistoryDay[] = [];
   for (const d of earlier) {
-    const day = mergeIntoFile(dataDir, recordFor(d, backfillRow));
+    const incoming = recordFor(d, backfillRow);
+    const recovers = incoming.restaurants.some((r) => r.status.kind === 'open');
+    if (!existsSync(dayPath(dataDir, d)) && (!recovers || !firstDate || d < firstDate)) continue;
+    const day = mergeIntoFile(dataDir, incoming);
     if (day) changedDays.push(day);
   }
   const backfilled = changedDays.map((d) => d.date);
@@ -111,11 +123,6 @@ export async function runCollect(opts: CollectOptions): Promise<CollectResult> {
   if (merged) changedDays.push(merged);
   const day = merged ?? readDay(path);
 
-  // history.json is updated from its previous content, or rebuilt from every day file when
-  // that can't be read. generatedAt alone is not a change.
-  const historyPath = join(dataDir, 'history.json');
-  const previous = readHistory(historyPath);
-  const days = new Map((previous?.days ?? allDays(dataDir)).map((d) => [d.date, d]));
   for (const d of changedDays) days.set(d.date, d);
   const dataset = buildHistoryDataset([...days.values()], collectedAt);
   const withoutTime = (value: object) => JSON.stringify({ ...value, generatedAt: '' });

@@ -13,14 +13,16 @@ All notable changes to this project. Versions follow [semantic versioning](https
   `history_unavailable` instead of blaming the restaurant's source.
 - `menu_stats` checks that `from` is not after `to` before downloading the history, and no
   longer prints an empty line when no group falls in the period.
-- The history download no longer delays today's menus; both are fetched in parallel.
+- The history download no longer delays today's menus when past days are asked for too; both
+  are fetched in parallel.
 
 ### Changed
 
 - The collector also runs at 08:30 UTC and fills in menus missing from earlier days of the week,
-  since GitHub can skip scheduled runs. It updates `history.json` incrementally.
-- The collector records "not published yet" as nothing listed and a day the source no longer lists
-  as not collected, so the history needs no interpretation when read.
+  since GitHub can skip scheduled runs (only days with a recovered menu, from the first recorded
+  day on). It updates `history.json` incrementally.
+- The collector records "not published yet" as nothing listed and a date the source no longer
+  covers as not collected, so the history needs no interpretation when read.
 
 ## 0.2.0 (2026-10-24)
 

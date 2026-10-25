@@ -10,9 +10,9 @@ export const ATTRIBUTION =
 const RANK: Record<DayStatus['kind'], number> = { open: 3, no_menu: 2, error: 1 };
 
 /**
- * What a fetch on the day itself says about it. The collector looks at the day it records, so
- * "not published yet" means nothing was listed, and a source that no longer lists the day
- * (Yolo in the evening) means it was not collected.
+ * A status as worth recording. "Not published yet" on the day being recorded means nothing was
+ * listed; "history not available" (a date the live source no longer covers, e.g. an old
+ * `--date`) means it was not collected.
  */
 function recordedStatus(status: DayStatus): DayStatus {
   if (status.kind !== 'no_menu') return status;

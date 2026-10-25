@@ -133,15 +133,22 @@ tsx scripts/collect.ts [--data-dir data] [--date YYYY-MM-DD] [--fail-on-error]
    `createLiveMenuService` (live sources only).
 3. Turn the result into a `HistoryDay` (`toHistoryDay`). Statuses are recorded as a fetch on the
    day itself sees them: `not_published_yet` becomes `none_listed`, and `history_not_available`
-   (the source no longer lists the day) becomes `error`, i.e. not collected.
+   (a date the live source no longer covers, e.g. an old `--date`) becomes `error`, i.e. not
+   collected. Known limit: a run late in the evening, after Yolo's page has moved on, still
+   infers today's status (`weekend` / `none_listed`) as the server does; the morning runs record
+   it first, and that inference is what keeps Sundays (Yolo's page starts on Monday) from being
+   recorded as failures.
 4. If a day file already exists, merge (`mergeHistoryDay`, §5.2). Write the file only if the merged
    content differs from what is on disk (ignoring `collectedAt` when nothing else changed).
 5. Backfill (added in 0.2.1): the earlier days of the week are merged the same way, but only their
    `open` entries are trusted; anything else is recorded as `error`, which never replaces a
    recorded entry. A missed run's menus are filled in while the source still lists the week (LUT
-   Buffet and Bistro; Yolo drops past days).
+   Buffet and Bistro; Yolo drops past days). A day without a file gets one only when a menu is
+   recovered and the day is not before the first recorded day; otherwise it stays missing. A
+   skipped Sunday is never backfilled (Monday starts a new week).
 6. Update `history.json` from its previous content with the changed days (`buildHistoryDataset`)
-   and write it if it changed. If it is missing or unreadable, rebuild it from all day files.
+   and write it if it changed. If it is missing or unreadable, rebuild it from all day files
+   (delete it to force a rebuild after editing day files by hand).
 7. Print a one-line summary per restaurant to stderr.
 8. With `--fail-on-error`, exit 1 if any restaurant is still `error` after merging. Without it, exit
    0 even when a source failed (the retry run follows).
@@ -217,8 +224,9 @@ interface HistoryStore {
 
 For each requested date before today:
 
-1. Load the history (only when the request contains a past date). The download runs in parallel
-   with the live sources for today and later.
+1. Load the history when the request contains a past date. The download runs in parallel with
+   the live sources for today and later. It is also loaded, after the live answer, when a source
+   has moved past today (below).
 2. Day recorded and restaurant `open` or `no_menu` → that status, `stale: false`,
    `fetchedAt` = the day's `collectedAt`.
 3. Day recorded but restaurant `error` → inside the 7-day window the live source is asked again;
@@ -344,7 +352,7 @@ later." (retryable) or the schema message (§4.3). No recorded days → normal r
 | Unknown history schema | Non-retryable error asking to update the package |
 | Day recorded, restaurant collection failed | Live source inside the 7-day window, else `history_not_available` |
 | Collector: one source fails | Day file written with `error`; 08:30 and 10:30 runs retry; job fails if still `error` at 10:30 |
-| Collector: a scheduled run is skipped | Later runs that week backfill the menus the sources still list |
+| Collector: a scheduled run is skipped | Later runs that week backfill the menus the sources still list; days with none stay missing |
 | Collector: run fails entirely | No commit; `menu_stats` reports the day in `days_missing` |
 
 ## 9. Testing

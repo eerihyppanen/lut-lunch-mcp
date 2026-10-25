@@ -81,7 +81,6 @@ export async function menuStats(
   // A defaulted `from` never lands after `to`, e.g. when `to` is before history starts.
   const firstDay = history.firstDate ?? today;
   const from = givenFrom ?? (firstDay < to ? firstDay : to);
-  if (to < from) throw new ToolInputError(`"to" (${to}) is before "from" (${from}).`);
 
   const restaurants = input.restaurants?.length ? input.restaurants : [...RESTAURANT_IDS];
   const query = input.query?.trim() || null;
