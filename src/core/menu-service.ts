@@ -31,13 +31,14 @@ function resolveStatus(result: SourceResult, date: string, today: string): DaySt
   if (courses.some((c) => c.dishes.length > 0)) return { kind: 'open', courses };
 
   // Outside what the source published: past dates are history, later dates aren't out yet.
-  // A date between today and the start of coverage (Yolo's page can start after today) is
-  // still explained by holiday / weekend / nothing listed below.
+  // Yolo's page can start after today (on Sundays, and in the evening once it has moved on):
+  // today is then no longer known, while later days before coverage are still explained by
+  // holiday / weekend / nothing listed below.
   const { coverage } = result;
   if (!coverage || date > coverage.through) {
     return noMenu(date < today ? 'history_not_available' : 'not_published_yet');
   }
-  if (date < coverage.from && date < today) return noMenu('history_not_available');
+  if (date < coverage.from && date <= today) return noMenu('history_not_available');
 
   const holiday = finnishHoliday(date);
   if (holiday) return noMenu('public_holiday', holiday);
@@ -45,21 +46,32 @@ function resolveStatus(result: SourceResult, date: string, today: string): DaySt
   return noMenu('none_listed');
 }
 
-/** A past day as recorded: what was served, or why not (spec §6.3). Null when not recorded. */
-function recordedDay(history: History, id: RestaurantId, date: string): RestaurantDay | null {
+/**
+ * A day as recorded: what was served, or why not (spec §6.3). Null when not recorded, or when
+ * its collection failed and the live source can still be asked (`live`).
+ */
+function recordedDay(
+  history: History,
+  id: RestaurantId,
+  date: string,
+  live: boolean,
+): RestaurantDay | null {
   const day = history.days.get(date);
   const entry = day?.restaurants.find((r) => r.id === id);
-  if (!day || !entry) return null;
-  // A failed collection can't be retried for a past day, so it reads as "no history"; a day
-  // recorded as "not published yet" (e.g. during a long closure) had nothing listed.
-  const status =
-    entry.status.kind === 'error'
-      ? noMenu('history_not_available')
-      : entry.status.kind === 'no_menu' && entry.status.reason === 'not_published_yet'
-        ? noMenu('none_listed')
-        : entry.status;
+  if (!day || !entry || (entry.status.kind === 'error' && live)) return null;
+  // A failed collection can't be retried once the source has moved on: "no history".
+  const status = entry.status.kind === 'error' ? noMenu('history_not_available') : entry.status;
   return { restaurantId: id, date, status, stale: false, fetchedAt: day.collectedAt };
 }
+
+const isUnknown = (status: DayStatus): boolean =>
+  status.kind === 'no_menu' && status.reason === 'history_not_available';
+
+const toSourceError = (error: unknown): SourceError =>
+  error instanceof SourceError ? error : new SourceError(String(error), false);
+
+/** The history or its load error, loaded at most once per request; undefined without a store. */
+type HistoryGetter = () => Promise<History | SourceError | undefined>;
 
 export class LiveMenuService implements MenuService {
   private readonly sources: ReadonlyMap<RestaurantId, MenuSource>;
@@ -94,24 +106,16 @@ export class LiveMenuService implements MenuService {
     const today = this.today();
     const sortedDates = [...new Set(dates)].sort();
     const ordered = RESTAURANT_IDS.filter((id) => restaurants.includes(id));
-    const history = await this.historyFor(sortedDates, today);
+    const store = this.history;
+    let pending: Promise<History | SourceError> | undefined;
+    const history: HistoryGetter = () =>
+      store ? (pending ??= store.load().catch(toSourceError)) : Promise.resolve(undefined);
+    // Start the download now; the live sources are asked meanwhile.
+    if (sortedDates.some((date) => date < today)) void history();
     const perRestaurant = await Promise.all(
       ordered.map((id) => this.daysFor(id, sortedDates, today, history)),
     );
     return sortedDates.flatMap((_, i) => perRestaurant.map((days) => days[i]!));
-  }
-
-  /** The history, or its load error; only loaded when a past date is asked for. */
-  private async historyFor(
-    dates: string[],
-    today: string,
-  ): Promise<History | SourceError | undefined> {
-    if (!this.history || !dates.some((date) => date < today)) return undefined;
-    try {
-      return await this.history.load();
-    } catch (error) {
-      return error instanceof SourceError ? error : new SourceError(String(error), false);
-    }
   }
 
   /** One RestaurantDay per date (same order), loading each source unit at most once. */
@@ -119,7 +123,7 @@ export class LiveMenuService implements MenuService {
     id: RestaurantId,
     dates: string[],
     today: string,
-    history: History | SourceError | undefined,
+    history: HistoryGetter,
   ): Promise<RestaurantDay[]> {
     const source = this.sources.get(id);
     if (!source) throw new Error(`No menu source configured for ${id}`);
@@ -129,45 +133,37 @@ export class LiveMenuService implements MenuService {
       return offset >= -WINDOW_PAST_DAYS && offset <= WINDOW_FUTURE_DAYS;
     };
 
+    const units = new Map<string, Promise<Loaded<SourceResult> | SourceError>>();
+    const loadUnit = (date: string) => {
+      const key = source.unitKey(date);
+      if (units.has(key)) return;
+      const load = this.loader.load(key, source.freshMs, () => source.fetchUnit(date, today));
+      units.set(key, load.catch(toSourceError));
+    };
+    // Today and later never come from the history: ask the sources before waiting for it.
+    for (const date of dates) if (date >= today && inWindow(date)) loadUnit(date);
+
     // Past dates come from the recorded history when it has them (spec §6.3). If the history
     // could not be loaded, dates older than the live window can only report that error.
     const fromHistory = new Map<string, RestaurantDay>();
-    for (const date of dates) {
-      if (history === undefined || date >= today) continue;
-      if (history instanceof SourceError) {
+    const past = dates.filter((date) => date < today);
+    const loaded = past.length ? await history() : undefined;
+    for (const date of past) {
+      if (loaded instanceof SourceError) {
         if (inWindow(date)) continue;
-        const status: DayStatus = { kind: 'error', retryable: history.retryable };
+        const status: DayStatus = { kind: 'error', retryable: loaded.retryable };
         fromHistory.set(date, { restaurantId: id, date, status, stale: false, fetchedAt: nowIso });
         continue;
       }
-      const recorded = recordedDay(history, id, date);
+      const recorded = loaded && recordedDay(loaded, id, date, inWindow(date));
       if (recorded) fromHistory.set(date, recorded);
     }
+    for (const date of past) if (inWindow(date) && !fromHistory.has(date)) loadUnit(date);
 
-    const firstDateOfUnit = new Map<string, string>();
-    for (const date of dates.filter((d) => inWindow(d) && !fromHistory.has(d))) {
-      const key = source.unitKey(date);
-      if (!firstDateOfUnit.has(key)) firstDateOfUnit.set(key, date);
-    }
+    const results = new Map<string, Loaded<SourceResult> | SourceError>();
+    await Promise.all([...units].map(async ([key, unit]) => results.set(key, await unit)));
 
-    const units = new Map<string, Loaded<SourceResult> | SourceError>();
-    await Promise.all(
-      [...firstDateOfUnit].map(async ([key, date]) => {
-        try {
-          units.set(
-            key,
-            await this.loader.load(key, source.freshMs, () => source.fetchUnit(date, today)),
-          );
-        } catch (error) {
-          units.set(
-            key,
-            error instanceof SourceError ? error : new SourceError(String(error), false),
-          );
-        }
-      }),
-    );
-
-    return dates.map((date): RestaurantDay => {
+    const rows = dates.map((date): RestaurantDay => {
       const recorded = fromHistory.get(date);
       if (recorded) return recorded;
       const base = { restaurantId: id, date };
@@ -175,7 +171,7 @@ export class LiveMenuService implements MenuService {
         const reason = date < today ? 'history_not_available' : 'not_published_yet';
         return { ...base, status: noMenu(reason), stale: false, fetchedAt: nowIso };
       }
-      const unit = units.get(source.unitKey(date))!;
+      const unit = results.get(source.unitKey(date))!;
       if (unit instanceof SourceError) {
         return {
           ...base,
@@ -191,6 +187,23 @@ export class LiveMenuService implements MenuService {
         fetchedAt: new Date(unit.fetchedAt).toISOString(),
       };
     });
+    return this.withRecordedToday(rows, id, today, history);
+  }
+
+  /** Today, once the source has moved on (Yolo in the evening), as the morning recorded it. */
+  private async withRecordedToday(
+    rows: RestaurantDay[],
+    id: RestaurantId,
+    today: string,
+    history: HistoryGetter,
+  ): Promise<RestaurantDay[]> {
+    const i = rows.findIndex((r) => r.date === today && isUnknown(r.status));
+    if (i < 0) return rows;
+    const loaded = await history();
+    if (!loaded || loaded instanceof SourceError) return rows;
+    const recorded = recordedDay(loaded, id, today, false);
+    if (!recorded || isUnknown(recorded.status)) return rows;
+    return rows.map((row, j) => (j === i ? recorded : row));
   }
 }
 

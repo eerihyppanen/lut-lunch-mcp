@@ -56,6 +56,28 @@ describe('history snapshots', () => {
     expect(JSON.stringify(day)).not.toMatch(/stale|fetchedAt/);
   });
 
+  it('records only what the source said about the day (code review #7, #1)', () => {
+    const notPublished: RestaurantDay = {
+      ...open('lut-buffet'),
+      status: { kind: 'no_menu', reason: 'not_published_yet' },
+    };
+    const noLonger: RestaurantDay = {
+      ...open('yolo'),
+      status: { kind: 'no_menu', reason: 'history_not_available' },
+    };
+    const day = toHistoryDay(
+      '2026-10-26',
+      [notPublished, open('bistro-skinnarila'), noLonger],
+      'T',
+      '0.2.1',
+    );
+    expect(day.restaurants.map((r) => r.status)).toEqual([
+      { kind: 'no_menu', reason: 'none_listed' }, // nothing published for a day being recorded
+      { kind: 'open', courses: [course] },
+      { kind: 'error', retryable: true }, // the source no longer lists the day: not collected
+    ]);
+  });
+
   it('merges by rank and never replaces a recorded menu', () => {
     const first = toHistoryDay(
       '2026-10-26',

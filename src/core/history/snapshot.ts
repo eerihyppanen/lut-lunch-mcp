@@ -9,6 +9,18 @@ export const ATTRIBUTION =
 // A later run can only improve a day: a recorded menu beats "no menu", which beats a failure.
 const RANK: Record<DayStatus['kind'], number> = { open: 3, no_menu: 2, error: 1 };
 
+/**
+ * What a fetch on the day itself says about it. The collector looks at the day it records, so
+ * "not published yet" means nothing was listed, and a source that no longer lists the day
+ * (Yolo in the evening) means it was not collected.
+ */
+function recordedStatus(status: DayStatus): DayStatus {
+  if (status.kind !== 'no_menu') return status;
+  if (status.reason === 'not_published_yet') return { kind: 'no_menu', reason: 'none_listed' };
+  if (status.reason === 'history_not_available') return { kind: 'error', retryable: true };
+  return status;
+}
+
 /** A day file from one fetch of that date; runtime fields (stale, fetchedAt) are dropped. */
 export function toHistoryDay(
   date: string,
@@ -18,7 +30,7 @@ export function toHistoryDay(
 ): HistoryDay {
   const restaurants = RESTAURANT_IDS.flatMap((id): HistoryRestaurant[] => {
     const row = rows.find((r) => r.restaurantId === id);
-    return row ? [{ id, status: row.status }] : [];
+    return row ? [{ id, status: recordedStatus(row.status) }] : [];
   });
   return { schema: 1, date, collectedAt, collectorVersion, restaurants };
 }

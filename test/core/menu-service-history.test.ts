@@ -1,6 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { RestaurantDay } from '../../src/core/types.js';
-import type { History } from '../../src/core/history/types.js';
+import { CachedLoader, MemoryCacheStore } from '../../src/core/cache.js';
+import { buildHistoryDataset, indexHistory } from '../../src/core/history/snapshot.js';
+import type { History, HistoryStore } from '../../src/core/history/types.js';
+import { LiveMenuService } from '../../src/core/menu-service.js';
+import { fakeSource } from '../helpers/fakes.js';
 import { HistorySchemaError } from '../../src/core/history/remote.js';
 import type { FindDishesOutput } from '../../src/mcp/schemas.js';
 import { call, connectClient } from '../helpers/connect.js';
@@ -85,23 +89,66 @@ describe('LiveMenuService with history', () => {
     expect(old!.status).toEqual({ kind: 'error', retryable: false });
   });
 
-  it('reads a recorded "not published yet" as nothing listed for a past day (review finding 3)', async () => {
+  it('shows the morning recorded menu for today once the source has moved on (code review #1)', async () => {
+    // Saturday 20:00 Helsinki: Yolo's page already starts on Monday.
+    const rolled = fakeSource('yolo', {
+      days: { '2026-10-26': [] },
+      coverage: { from: '2026-10-26', through: '2026-10-27' },
+    });
+    const at = new Date('2026-10-24T17:00:00Z');
+    const svc = (history: HistoryStore) =>
+      new LiveMenuService({
+        sources: [rolled],
+        loader: new CachedLoader(new MemoryCacheStore(), () => at.getTime()),
+        now: () => at,
+        history,
+      });
+    const [today] = await svc({ load: fixtureHistory }).getDays(['2026-10-24'], ['yolo']);
+    expect(today).toMatchObject({
+      status: { kind: 'open' },
+      fetchedAt: '2026-10-24T06:30:00.000Z',
+    });
+    const empty: HistoryStore = {
+      load: () => Promise.resolve(indexHistory(buildHistoryDataset([], 'T'))),
+    };
+    const [unknown] = await svc(empty).getDays(['2026-10-24'], ['yolo']);
+    expect(statusOf(unknown!)).toBe('no_menu:history_not_available');
+  });
+
+  it('asks the live source when a recorded failure is inside the live window (code review #3)', async () => {
     const h = await fixtureHistory();
-    const day = h.days.get('2026-10-20')!;
-    const closed = {
+    const day = h.days.get('2026-10-22')!;
+    const failed = {
       ...day,
       restaurants: day.restaurants.map((r) =>
-        r.id === 'lut-buffet'
-          ? { ...r, status: { kind: 'no_menu' as const, reason: 'not_published_yet' as const } }
-          : r,
+        r.id === 'lut-buffet' ? { ...r, status: { kind: 'error' as const, retryable: true } } : r,
       ),
     };
-    const history: History = { ...h, days: new Map([...h.days, ['2026-10-20', closed]]) };
-    const [d] = await historyService({ history: { load: () => Promise.resolve(history) } }).getDays(
-      ['2026-10-20'],
-      ['lut-buffet'],
-    );
-    expect(statusOf(d!)).toBe('no_menu:none_listed');
+    const history: History = { ...h, days: new Map([...h.days, ['2026-10-22', failed]]) };
+    const svc = historyService({
+      history: { load: () => Promise.resolve(history) },
+      now: new Date('2026-10-24T09:00:00Z'),
+    });
+    const [d] = await svc.getDays(['2026-10-22'], ['lut-buffet']);
+    expect(statusOf(d!)).toBe('open'); // the live week still lists Thursday
+  });
+
+  it('starts fetching today while the history is still downloading (code review #8)', async () => {
+    let release: (h: History) => void = () => {};
+    const load = () => new Promise<History>((resolve) => (release = resolve));
+    const src = fakeSource('lut-buffet', { days: {}, coverage: null });
+    const at = new Date('2026-10-30T09:00:00Z');
+    const svc = new LiveMenuService({
+      sources: [src],
+      loader: new CachedLoader(new MemoryCacheStore(), () => at.getTime()),
+      now: () => at,
+      history: { load },
+    });
+    const pending = svc.getDays(['2026-10-20', '2026-10-30'], ['lut-buffet']);
+    await new Promise((r) => setTimeout(r, 0));
+    expect(src.calls).toEqual(['2026-10-30']);
+    release(await fixtureHistory());
+    await pending;
   });
 
   it('finds dishes over a past range end to end (spec §9)', async () => {
