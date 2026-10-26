@@ -1,14 +1,18 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { RestaurantDay } from '../../src/core/types.js';
 import { CachedLoader, MemoryCacheStore } from '../../src/core/cache.js';
-import { buildHistoryDataset, indexHistory } from '../../src/core/history/snapshot.js';
-import type { History, HistoryStore } from '../../src/core/history/types.js';
+import type { HistoryDay, HistoryStore } from '../../src/core/history/types.js';
 import { LiveMenuService } from '../../src/core/menu-service.js';
 import { fakeSource } from '../helpers/fakes.js';
 import { HistorySchemaError } from '../../src/core/history/remote.js';
 import type { FindDishesOutput } from '../../src/mcp/schemas.js';
 import { call, connectClient } from '../helpers/connect.js';
-import { fixtureHistory, historyService } from '../helpers/history-fixture.js';
+import {
+  failingHistoryStore,
+  fixtureHistoryDays,
+  historyService,
+  memoryHistoryStore,
+} from '../helpers/history-fixture.js';
 
 function statusOf(d: RestaurantDay): string {
   return d.status.kind === 'no_menu' ? `no_menu:${d.status.reason}` : d.status.kind;
@@ -59,13 +63,14 @@ describe('LiveMenuService with history', () => {
   });
 
   it('does not load history for today and future dates', async () => {
-    const load = vi.fn();
-    await historyService({ history: { load } }).getDays(['2026-10-30', '2026-10-31'], ['yolo']);
-    expect(load).not.toHaveBeenCalled();
+    const store = { statsIndex: vi.fn(), days: vi.fn() };
+    await historyService({ history: store }).getDays(['2026-10-30', '2026-10-31'], ['yolo']);
+    expect(store.statsIndex).not.toHaveBeenCalled();
+    expect(store.days).not.toHaveBeenCalled();
   });
 
-  it('exposes loadHistory', async () => {
-    expect((await historyService().loadHistory()).firstDate).toBe('2026-10-19');
+  it('exposes loadStatsIndex', async () => {
+    expect((await historyService().loadStatsIndex()).firstDate).toBe('2026-10-19');
   });
 
   it('describes past dates in the tool descriptions', async () => {
@@ -78,11 +83,7 @@ describe('LiveMenuService with history', () => {
   });
 
   it('keeps today working when the history is broken (review focus 3)', async () => {
-    const svc = historyService({
-      history: {
-        load: () => Promise.reject(new HistorySchemaError(2)),
-      },
-    });
+    const svc = historyService({ history: failingHistoryStore(new HistorySchemaError(2)) });
     const [today] = await svc.getDays(['2026-10-30'], ['lut-buffet']);
     expect(today!.status.kind).not.toBe('error');
     const [old] = await svc.getDays(['2026-10-20'], ['lut-buffet']);
@@ -103,30 +104,34 @@ describe('LiveMenuService with history', () => {
         now: () => at,
         history,
       });
-    const [today] = await svc({ load: fixtureHistory }).getDays(['2026-10-24'], ['yolo']);
+    const [today] = await svc(memoryHistoryStore(fixtureHistoryDays)).getDays(
+      ['2026-10-24'],
+      ['yolo'],
+    );
     expect(today).toMatchObject({
       status: { kind: 'open' },
       fetchedAt: '2026-10-24T06:30:00.000Z',
     });
-    const empty: HistoryStore = {
-      load: () => Promise.resolve(indexHistory(buildHistoryDataset([], 'T'))),
-    };
-    const [inferred] = await svc(empty).getDays(['2026-10-24'], ['yolo']);
+    const [inferred] = await svc(memoryHistoryStore(() => Promise.resolve([]))).getDays(
+      ['2026-10-24'],
+      ['yolo'],
+    );
     expect(statusOf(inferred!)).toBe('no_menu:weekend'); // no record: inferred as before
   });
 
   it('asks the live source when a recorded failure is inside the live window (code review #3)', async () => {
-    const h = await fixtureHistory();
-    const day = h.days.get('2026-10-22')!;
-    const failed = {
-      ...day,
-      restaurants: day.restaurants.map((r) =>
-        r.id === 'lut-buffet' ? { ...r, status: { kind: 'error' as const, retryable: true } } : r,
-      ),
-    };
-    const history: History = { ...h, days: new Map([...h.days, ['2026-10-22', failed]]) };
+    const days = (await fixtureHistoryDays()).map((day): HistoryDay =>
+      day.date !== '2026-10-22'
+        ? day
+        : {
+            ...day,
+            restaurants: day.restaurants.map((r) =>
+              r.id === 'lut-buffet' ? { ...r, status: { kind: 'error', retryable: true } } : r,
+            ),
+          },
+    );
     const svc = historyService({
-      history: { load: () => Promise.resolve(history) },
+      history: memoryHistoryStore(() => Promise.resolve(days)),
       now: new Date('2026-10-24T09:00:00Z'),
     });
     const [d] = await svc.getDays(['2026-10-22'], ['lut-buffet']);
@@ -134,20 +139,23 @@ describe('LiveMenuService with history', () => {
   });
 
   it('starts fetching today while the history is still downloading (code review #8)', async () => {
-    let release: (h: History) => void = () => {};
-    const load = () => new Promise<History>((resolve) => (release = resolve));
+    let release: (days: Map<string, HistoryDay>) => void = () => {};
+    const history: HistoryStore = {
+      statsIndex: vi.fn(),
+      days: () => new Promise((resolve) => (release = resolve)),
+    };
     const src = fakeSource('lut-buffet', { days: {}, coverage: null });
     const at = new Date('2026-10-30T09:00:00Z');
     const svc = new LiveMenuService({
       sources: [src],
       loader: new CachedLoader(new MemoryCacheStore(), () => at.getTime()),
       now: () => at,
-      history: { load },
+      history,
     });
     const pending = svc.getDays(['2026-10-20', '2026-10-30'], ['lut-buffet']);
     await new Promise((r) => setTimeout(r, 0));
     expect(src.calls).toEqual(['2026-10-30']);
-    release(await fixtureHistory());
+    release(new Map());
     await pending;
   });
 

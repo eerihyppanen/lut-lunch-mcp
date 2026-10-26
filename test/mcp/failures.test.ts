@@ -24,7 +24,7 @@ function allSourcesDown(): LiveMenuService {
 const broken: MenuService = {
   today: () => '2026-10-23',
   getDays: () => Promise.reject(new TypeError('boom')),
-  loadHistory: () => Promise.reject(new TypeError('boom')),
+  loadStatsIndex: () => Promise.reject(new TypeError('boom')),
 };
 
 describe('when every source is down', () => {

@@ -1,15 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import { buildHistoryDataset, indexHistory } from '../../src/core/history/snapshot.js';
+import { buildStatsIndex } from '../../src/core/history/stats-index.js';
 import { HistorySchemaError } from '../../src/core/history/remote.js';
 import { SourceError } from '../../src/core/http.js';
 import type { MenuService } from '../../src/core/types.js';
 import type { GetMenuOutput, MenuStatsOutput } from '../../src/mcp/schemas.js';
 import { call, callText, connectClient } from '../helpers/connect.js';
 import { fakeService } from '../helpers/fakes.js';
-import { fixtureHistory, historyService } from '../helpers/history-fixture.js';
+import { fixtureStatsIndex, historyService } from '../helpers/history-fixture.js';
 
 const withHistory = async () =>
-  connectClient(fakeService([], '2026-10-30', await fixtureHistory()));
+  connectClient(fakeService([], '2026-10-30', await fixtureStatsIndex()));
 
 describe('menu_stats', () => {
   it('answers "how often salmon" from history', async () => {
@@ -65,9 +65,7 @@ describe('menu_stats', () => {
   });
 
   it('says when nothing is recorded yet', async () => {
-    const client = await connectClient(
-      fakeService([], '2026-10-30', indexHistory(buildHistoryDataset([], 'T'))),
-    );
+    const client = await connectClient(fakeService([], '2026-10-30', buildStatsIndex([], 'T')));
     expect(await callText(client, 'menu_stats', {})).toContain('No history recorded yet');
   });
 
@@ -112,7 +110,7 @@ describe('menu_stats', () => {
 
   const failingHistory = (error: Error): MenuService => ({
     ...fakeService([], '2026-10-30'),
-    loadHistory: () => Promise.reject(error),
+    loadStatsIndex: () => Promise.reject(error),
   });
 
   it('keeps the schema message but words other history failures as temporary (review finding 1/2)', async () => {
@@ -139,9 +137,7 @@ describe('menu_stats', () => {
     });
     expect(out.searched).toMatchObject({ from: '2026-10-10', to: '2026-10-10' });
     expect(out.matches.days_served).toBe(0);
-    const empty = await connectClient(
-      fakeService([], '2026-10-30', indexHistory(buildHistoryDataset([], 'T'))),
-    );
+    const empty = await connectClient(fakeService([], '2026-10-30', buildStatsIndex([], 'T')));
     expect(await callText(empty, 'menu_stats', { to: '2026-10-10' })).toContain(
       'No history recorded yet',
     );

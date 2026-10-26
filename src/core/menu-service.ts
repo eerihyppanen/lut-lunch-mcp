@@ -2,7 +2,8 @@ import { CachedLoader, MemoryCacheStore, type Loaded } from './cache.js';
 import { daysBetween, helsinkiToday, isWeekend } from './calendar/dates.js';
 import { finnishHoliday } from './calendar/holidays.js';
 import { createRemoteHistoryStore } from './history/remote.js';
-import type { History, HistoryStore } from './history/types.js';
+import type { StatsIndex } from './history/stats-index.js';
+import type { HistoryDay, HistoryStore } from './history/types.js';
 import { SourceError, type HttpClient } from './http.js';
 import { createAalefSource } from './sources/aalef.js';
 import { createCompassSource } from './sources/compass.js';
@@ -50,12 +51,12 @@ function resolveStatus(result: SourceResult, date: string, today: string): DaySt
  * its collection failed and the live source can still be asked (`live`).
  */
 function recordedDay(
-  history: History,
+  days: RecordedDays,
   id: RestaurantId,
   date: string,
   live: boolean,
 ): RestaurantDay | null {
-  const day = history.days.get(date);
+  const day = days.get(date);
   const entry = day?.restaurants.find((r) => r.id === id);
   if (!day || !entry || (entry.status.kind === 'error' && live)) return null;
   // A failed collection can't be retried once the source has moved on: "no history".
@@ -66,8 +67,16 @@ function recordedDay(
 const toSourceError = (error: unknown): SourceError =>
   error instanceof SourceError ? error : new SourceError(String(error), false);
 
-/** The history or its load error, loaded at most once per request; undefined without a store. */
-type HistoryGetter = () => Promise<History | SourceError | undefined>;
+type RecordedDays = ReadonlyMap<string, HistoryDay>;
+
+/** Recorded days or their load error, fetched at most once per request; undefined without a store. */
+type HistoryGetter = () => Promise<RecordedDays | SourceError | undefined>;
+
+/** The recorded days a request may need: its past dates, and today (phase 3 spec §4.3). */
+interface RequestHistory {
+  past: HistoryGetter;
+  today: HistoryGetter;
+}
 
 export class LiveMenuService implements MenuService {
   private readonly sources: ReadonlyMap<RestaurantId, MenuSource>;
@@ -91,27 +100,33 @@ export class LiveMenuService implements MenuService {
     return helsinkiToday(this.now());
   }
 
-  loadHistory(): Promise<History> {
+  loadStatsIndex(): Promise<StatsIndex> {
     if (!this.history) {
       return Promise.reject(new SourceError('Menu history is not configured', false));
     }
-    return this.history.load();
+    return this.history.statsIndex();
   }
 
   async getDays(dates: string[], restaurants: RestaurantId[]): Promise<RestaurantDay[]> {
     const today = this.today();
     const sortedDates = [...new Set(dates)].sort();
     const ordered = RESTAURANT_IDS.filter((id) => restaurants.includes(id));
-    const store = this.history;
-    let pending: Promise<History | SourceError> | undefined;
-    const history: HistoryGetter = () =>
-      store ? (pending ??= store.load().catch(toSourceError)) : Promise.resolve(undefined);
+    const past = sortedDates.filter((date) => date < today);
+    const history: RequestHistory = { past: this.recorded(past), today: this.recorded([today]) };
     // Start the download now; the live sources are asked meanwhile.
-    if (sortedDates.some((date) => date < today)) void history();
+    if (past.length) void history.past();
     const perRestaurant = await Promise.all(
       ordered.map((id) => this.daysFor(id, sortedDates, today, history)),
     );
     return sortedDates.flatMap((_, i) => perRestaurant.map((days) => days[i]!));
+  }
+
+  /** A getter that fetches the recorded `dates` once, on first use, turning failures into values. */
+  private recorded(dates: string[]): HistoryGetter {
+    const store = this.history;
+    let pending: Promise<RecordedDays | SourceError> | undefined;
+    return () =>
+      store ? (pending ??= store.days(dates).catch(toSourceError)) : Promise.resolve(undefined);
   }
 
   /** One RestaurantDay per date (same order), loading each source unit at most once. */
@@ -119,7 +134,7 @@ export class LiveMenuService implements MenuService {
     id: RestaurantId,
     dates: string[],
     today: string,
-    history: HistoryGetter,
+    history: RequestHistory,
   ): Promise<RestaurantDay[]> {
     const source = this.sources.get(id);
     if (!source) throw new Error(`No menu source configured for ${id}`);
@@ -143,7 +158,7 @@ export class LiveMenuService implements MenuService {
     // could not be loaded, dates older than the live window can only report that error.
     const fromHistory = new Map<string, RestaurantDay>();
     const past = dates.filter((date) => date < today);
-    const loaded = past.length ? await history() : undefined;
+    const loaded = past.length ? await history.past() : undefined;
     for (const date of past) {
       if (loaded instanceof SourceError) {
         if (inWindow(date)) continue;
@@ -186,7 +201,7 @@ export class LiveMenuService implements MenuService {
     const todayUnit = dates.includes(today) ? results.get(source.unitKey(today)) : undefined;
     const coverage = todayUnit instanceof SourceError ? null : todayUnit?.value.coverage;
     const movedOn = !!coverage && today < coverage.from;
-    return movedOn ? this.withRecordedMenu(rows, id, today, history) : rows;
+    return movedOn ? this.withRecordedMenu(rows, id, today, history.today) : rows;
   }
 
   /**
@@ -208,13 +223,13 @@ export class LiveMenuService implements MenuService {
 }
 
 /**
- * The production service: all three restaurants, one shared in-memory cache. With `historyUrl`
+ * The production service: all three restaurants, one shared in-memory cache. With `historyBaseUrl`
  * past days and statistics come from the recorded history; without it (the collector) only
  * live sources are used.
  */
 export function createLiveMenuService(
   http: HttpClient,
-  opts: { historyUrl?: string } = {},
+  opts: { historyBaseUrl?: string } = {},
 ): LiveMenuService {
   const loader = new CachedLoader(new MemoryCacheStore(), Date.now);
   return new LiveMenuService({
@@ -224,7 +239,9 @@ export function createLiveMenuService(
       createAalefSource(http),
     ],
     loader,
-    history: opts.historyUrl ? createRemoteHistoryStore(http, loader, opts.historyUrl) : undefined,
+    history: opts.historyBaseUrl
+      ? createRemoteHistoryStore(http, loader, opts.historyBaseUrl)
+      : undefined,
     now: () => new Date(),
   });
 }

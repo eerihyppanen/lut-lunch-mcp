@@ -1,4 +1,5 @@
 import type { DayStatus, RestaurantId } from '../types.js';
+import type { StatsIndex } from './stats-index.js';
 
 /** One restaurant's recorded outcome for a day. */
 export interface HistoryRestaurant {
@@ -35,15 +36,13 @@ export interface HistoryDataset {
   days: HistoryDay[];
 }
 
-/** The history indexed for lookups. */
-export interface History {
-  /** Null when no day is recorded yet. */
-  firstDate: string | null;
-  lastDate: string | null;
-  days: ReadonlyMap<string, HistoryDay>;
-}
-
+/**
+ * Recorded history (phase 3 spec §4.3). Both lookups reject with SourceError when the history is
+ * unavailable or uses an unsupported schema.
+ */
 export interface HistoryStore {
-  /** Throws SourceError when the history is unavailable or uses an unsupported schema. */
-  load(): Promise<History>;
+  /** The parsed stats.json; also the list of recorded dates. */
+  statsIndex(): Promise<StatsIndex>;
+  /** Recorded days among `dates`; dates without a day file are absent from the map. */
+  days(dates: string[]): Promise<Map<string, HistoryDay>>;
 }

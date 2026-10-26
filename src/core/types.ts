@@ -1,4 +1,4 @@
-import type { History } from './history/types.js';
+import type { StatsIndex } from './history/stats-index.js';
 
 export const RESTAURANT_IDS = ['lut-buffet', 'bistro-skinnarila', 'yolo'] as const;
 export type RestaurantId = (typeof RESTAURANT_IDS)[number];
@@ -88,6 +88,6 @@ export interface MenuService {
   getDays(dates: string[], restaurants: RestaurantId[]): Promise<RestaurantDay[]>;
   /** Today's date in Europe/Helsinki. */
   today(): string;
-  /** The recorded menu history; rejects with SourceError when it is unavailable. */
-  loadHistory(): Promise<History>;
+  /** The recorded history's stats.json; rejects with SourceError when it is unavailable. */
+  loadStatsIndex(): Promise<StatsIndex>;
 }

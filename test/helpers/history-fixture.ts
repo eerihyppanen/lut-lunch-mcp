@@ -1,9 +1,6 @@
-import {
-  buildHistoryDataset,
-  indexHistory,
-  toHistoryDay,
-} from '../../src/core/history/snapshot.js';
-import type { History, HistoryDay, HistoryStore } from '../../src/core/history/types.js';
+import { toHistoryDay } from '../../src/core/history/snapshot.js';
+import { buildStatsIndex, type StatsIndex } from '../../src/core/history/stats-index.js';
+import type { HistoryDay, HistoryStore } from '../../src/core/history/types.js';
 import { CachedLoader, MemoryCacheStore } from '../../src/core/cache.js';
 import { SourceError } from '../../src/core/http.js';
 import { LiveMenuService } from '../../src/core/menu-service.js';
@@ -52,8 +49,8 @@ export function historyService(
   const now = opts.now ?? new Date('2026-10-30T09:00:00Z');
   const history: HistoryStore =
     opts.history === 'failing'
-      ? { load: () => Promise.reject(new SourceError('down', true)) }
-      : (opts.history ?? { load: fixtureHistory });
+      ? failingHistoryStore(new SourceError('down', true))
+      : (opts.history ?? memoryHistoryStore(fixtureHistoryDays));
   return new LiveMenuService({
     sources: fixtureSources(),
     loader: new CachedLoader(new MemoryCacheStore(), () => now.getTime()),
@@ -62,7 +59,21 @@ export function historyService(
   });
 }
 
-/** The fixture days as an indexed history. */
-export async function fixtureHistory(): Promise<History> {
-  return indexHistory(buildHistoryDataset(await fixtureHistoryDays(), '2026-10-25T07:00:00.000Z'));
+/** The fixture days as stats.json. */
+export async function fixtureStatsIndex(): Promise<StatsIndex> {
+  return buildStatsIndex(await fixtureHistoryDays(), '2026-10-25T07:00:00.000Z');
+}
+
+/** A HistoryStore over days in memory, loaded when first asked for (like the remote store). */
+export function memoryHistoryStore(load: () => Promise<HistoryDay[]>): HistoryStore {
+  return {
+    statsIndex: async () => buildStatsIndex(await load(), '2026-10-25T07:00:00.000Z'),
+    days: async (dates) =>
+      new Map((await load()).filter((d) => dates.includes(d.date)).map((d) => [d.date, d])),
+  };
+}
+
+/** A HistoryStore whose every lookup fails with `error`. */
+export function failingHistoryStore(error: Error): HistoryStore {
+  return { statsIndex: () => Promise.reject(error), days: () => Promise.reject(error) };
 }

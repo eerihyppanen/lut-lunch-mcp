@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 import { HistoryDatasetSchema } from '../../../src/core/history/schema.js';
 import {
   buildHistoryDataset,
-  indexHistory,
   mergeHistoryDay,
   toHistoryDay,
 } from '../../../src/core/history/snapshot.js';
@@ -128,14 +127,7 @@ describe('history snapshots', () => {
     expect(dataset).toMatchObject({ schema: 1, firstDate: '2026-10-19', lastDate: '2026-10-25' });
     expect(dataset.sources.map((s) => s.id)).toEqual(['lut-buffet', 'bistro-skinnarila', 'yolo']);
     expect(HistoryDatasetSchema.safeParse(JSON.parse(JSON.stringify(dataset))).success).toBe(true);
-    const history = indexHistory(dataset);
-    expect(history.days.get('2026-10-22')!.restaurants[2]!.status).toEqual({
-      kind: 'error',
-      retryable: true,
-    });
-    expect(indexHistory(buildHistoryDataset([], 'T'))).toMatchObject({
-      firstDate: null,
-      lastDate: null,
-    });
+    expect(dataset.days[2]!.restaurants[2]!.status).toEqual({ kind: 'error', retryable: true });
+    expect(buildHistoryDataset([], 'T')).toMatchObject({ firstDate: null, lastDate: null });
   });
 });

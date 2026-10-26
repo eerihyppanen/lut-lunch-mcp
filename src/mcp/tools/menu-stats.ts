@@ -1,9 +1,8 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { resolveDateInput } from '../../core/calendar/dates.js';
-import type { History } from '../../core/history/types.js';
 import { HistorySchemaError } from '../../core/history/remote.js';
-import { buildStatsIndex } from '../../core/history/stats-index.js';
+import type { StatsIndex } from '../../core/history/stats-index.js';
 import { SourceError } from '../../core/http.js';
 import { RESTAURANT_IDS, type MenuService } from '../../core/types.js';
 import { READ_ONLY } from '../annotations.js';
@@ -55,9 +54,9 @@ export const MenuStatsInputSchema = z.object({
 });
 export type MenuStatsInput = z.infer<typeof MenuStatsInputSchema>;
 
-async function loadHistory(service: MenuService): Promise<History> {
+async function loadIndex(service: MenuService): Promise<StatsIndex> {
   try {
-    return await service.loadHistory();
+    return await service.loadStatsIndex();
   } catch (error) {
     // Only an unsupported schema has a fix worth naming; any other download or data problem
     // (HTTP errors, malformed data) reads as temporary (spec §8).
@@ -78,16 +77,15 @@ export async function menuStats(
   if (givenFrom !== undefined && to < givenFrom) {
     throw new ToolInputError(`"to" (${to}) is before "from" (${givenFrom}).`);
   }
-  const history = await loadHistory(service);
+  const index = await loadIndex(service);
   // A defaulted `from` never lands after `to`, e.g. when `to` is before history starts.
-  const firstDay = history.firstDate ?? today;
+  const firstDay = index.firstDate ?? today;
   const from = givenFrom ?? (firstDay < to ? firstDay : to);
 
   const restaurants = input.restaurants?.length ? input.restaurants : [...RESTAURANT_IDS];
   const query = input.query?.trim() || null;
   const diet = input.diet ?? [];
-  // Until the history store serves stats.json (next task), index the loaded history here.
-  const stats = computeStats(buildStatsIndex([...history.days.values()], ''), {
+  const stats = computeStats(index, {
     query: query ?? undefined,
     diet,
     restaurants,

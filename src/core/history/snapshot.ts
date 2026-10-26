@@ -1,6 +1,6 @@
 import { RESTAURANTS } from '../restaurants.js';
 import { RESTAURANT_IDS, type DayStatus, type RestaurantDay } from '../types.js';
-import type { History, HistoryDataset, HistoryDay, HistoryRestaurant } from './types.js';
+import type { HistoryDataset, HistoryDay, HistoryRestaurant } from './types.js';
 
 export const ATTRIBUTION =
   'Menus by Kampusravintolat, Compass Group (Food & Co) and Aalef; collected by lut-lunch-mcp. ' +
@@ -67,13 +67,5 @@ export function buildHistoryDataset(days: HistoryDay[], generatedAt: string): Hi
       menuUrl,
     })),
     days: sorted,
-  };
-}
-
-export function indexHistory(dataset: HistoryDataset): History {
-  return {
-    firstDate: dataset.firstDate,
-    lastDate: dataset.lastDate,
-    days: new Map(dataset.days.map((day) => [day.date, day])),
   };
 }
