@@ -19,7 +19,7 @@ Claude: Tomorrow is Saturday, so LUT Buffet and Bistro Skinnarila are closed. Yo
 The same server runs on Cloudflare Workers. Add it as a connector, with no authentication:
 
 ```
-WORKER_URL_PLACEHOLDER
+https://lut-lunch-mcp.eerihyppanen-lut-lunch-mcp.workers.dev/mcp
 ```
 
 - **Claude** (claude.ai or the desktop app): Settings → Connectors → Add custom connector, paste the
@@ -239,6 +239,9 @@ server.
 - Yolo publishes about four serving days ahead and no per-course prices.
 - "Vegetarian" is inferred from course names (no source has a vegetarian label).
 - Lunch hours in `list_restaurants` are the usual hours and can change; check the menu link.
+- The remote server runs on Cloudflare's free plan. The first request a new Worker instance
+  serves takes slightly more CPU than the plan's 10 ms budget (later ones about 2 ms);
+  Cloudflare has served them all so far, and the logs are watched for limit errors.
 - Gluten filtering trusts the restaurant's gluten-free label, even over a "may contain" note (see
   [Design decisions](#design-decisions)).
 

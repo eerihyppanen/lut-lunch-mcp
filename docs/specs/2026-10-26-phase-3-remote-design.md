@@ -22,6 +22,12 @@ Make the server usable without installing anything, and make history collection 
    npm public packages. No credit card-backed service is required to run it.
 4. Every request stays within the Workers Free limits (10 ms CPU, 50 subrequests) as the history
    grows for years; a CPU budget test proves it.
+
+   Measured after the first deploy (2026-10-26, Workers Logs, 40 `menu_stats` requests): a warm
+   instance uses 1–4 ms of CPU (median 2 ms). The first request on a fresh instance uses 11–27 ms,
+   because it also compiles the code it runs (MCP SDK, zod, ours); minifying the bundle made no
+   difference. Cloudflare served every request. Decision: accept this first-run overhead and watch
+   the Worker's logs for CPU-limit errors (1102); revisit if they appear.
 5. The npm package keeps working as before and shares all menu, history and tool code with the
    Worker.
 
