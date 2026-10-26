@@ -1,0 +1,10 @@
+// Cloudflare Worker for the remote MCP server (docs/specs/2026-10-26-phase-3-remote-design.md §7).
+// No nodejs_compat: anything Node-only in the Worker's imports fails the build.
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "lut-lunch-mcp",
+  "main": "src/bin/worker.ts",
+  "compatibility_date": "2026-10-26",
+  "workers_dev": true,
+  "observability": { "enabled": true },
+}

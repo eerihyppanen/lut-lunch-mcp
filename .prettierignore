@@ -4,3 +4,4 @@ test/fixtures
 .superpowers
 package-lock.json
 docs
+.wrangler
