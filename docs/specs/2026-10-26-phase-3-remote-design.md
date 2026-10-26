@@ -286,8 +286,9 @@ live sources, well under the 50-subrequest limit. `get_menu` covers at most 7 da
 - README:
   - "Remote server" section with the connector URL and steps for Claude (custom connector) and
     ChatGPT (developer mode connector).
-  - "Maintenance" section: renewing the dispatch token, forcing a rebuild of `history.json` /
-    `stats.json` (delete the file on the data branch; the next run rebuilds it), and where
+  - "Maintenance" section: renewing the dispatch token, forcing a rebuild of `history.json` and
+    `stats.json` (delete only `history.json` on the data branch; the next run rebuilds both from
+    the day files, while servers keep reading the old `stats.json` until then), and where
     Worker logs are.
   - Roadmap updated.
 - Data branch README: describes `stats.json`.

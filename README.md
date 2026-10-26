@@ -225,7 +225,9 @@ server.
   "Edit Cloudflare Workers") and `CLOUDFLARE_ACCOUNT_ID`, and the variable `WORKER_URL` (the
   deployed `/mcp` URL).
 - **Rebuilding the history files.** After editing day files on the `data` branch by hand, delete
-  `history.json` and `stats.json` there; the next collection rebuilds both from the day files.
+  `history.json` there (only that one); the next collection rebuilds it and `stats.json` from the
+  day files. Don't delete `stats.json`: servers read it, so past days and `menu_stats` would fail
+  until the next collection.
 - **Logs.** The Worker logs one line per request (method, tool, duration, status; no IP addresses
   or arguments) and each collection trigger. They are in the Cloudflare dashboard under the
   Worker's Observability tab.
