@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { StatsIndexSchema } from '../../../src/core/history/schema.js';
 import { buildStatsIndex } from '../../../src/core/history/stats-index.js';
+import { dishSearchText, foldText } from '../../../src/core/normalize/text.js';
 import { fixtureHistoryDays } from '../../helpers/history-fixture.js';
 
 describe('buildStatsIndex', () => {
@@ -13,6 +14,11 @@ describe('buildStatsIndex', () => {
     const keys = new Set(index.dishes.map((d) => JSON.stringify([d.fi, d.en, d.tags])));
     expect(keys.size).toBe(index.dishes.length);
     expect(index.dishes.length).toBeLessThan(served.length);
+    // Folded once by the collector, so queries never fold text (phase 3 CPU budget).
+    for (const d of index.dishes) {
+      expect(d.key).toBe(foldText(d.fi));
+      expect(d.search).toBe(dishSearchText(d));
+    }
 
     const first = index.days[0]!.restaurants[0]!; // 2026-10-19, lut-buffet
     const recorded = days[0]!.restaurants[0]!.status;

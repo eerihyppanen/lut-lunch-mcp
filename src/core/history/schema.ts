@@ -73,7 +73,13 @@ export const StatsIndexSchema = z.object({
   lastDate: z.string().nullable(),
   attribution: z.string(),
   dishes: z.array(
-    z.object({ fi: z.string(), en: z.string().nullable(), tags: z.array(z.enum(DIET_TAGS)) }),
+    z.object({
+      fi: z.string(),
+      en: z.string().nullable(),
+      tags: z.array(z.enum(DIET_TAGS)),
+      key: z.string(),
+      search: z.string(),
+    }),
   ),
   days: z.array(
     z.object({

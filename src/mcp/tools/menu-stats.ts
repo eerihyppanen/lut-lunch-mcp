@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { resolveDateInput } from '../../core/calendar/dates.js';
 import type { History } from '../../core/history/types.js';
 import { HistorySchemaError } from '../../core/history/remote.js';
+import { buildStatsIndex } from '../../core/history/stats-index.js';
 import { SourceError } from '../../core/http.js';
 import { RESTAURANT_IDS, type MenuService } from '../../core/types.js';
 import { READ_ONLY } from '../annotations.js';
@@ -85,7 +86,8 @@ export async function menuStats(
   const restaurants = input.restaurants?.length ? input.restaurants : [...RESTAURANT_IDS];
   const query = input.query?.trim() || null;
   const diet = input.diet ?? [];
-  const stats = computeStats(history, {
+  // Until the history store serves stats.json (next task), index the loaded history here.
+  const stats = computeStats(buildStatsIndex([...history.days.values()], ''), {
     query: query ?? undefined,
     diet,
     restaurants,

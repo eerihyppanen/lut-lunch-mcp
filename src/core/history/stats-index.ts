@@ -1,3 +1,4 @@
+import { dishSearchText, foldText } from '../normalize/text.js';
 import type { DayStatus, DietTag, RestaurantId } from '../types.js';
 import { ATTRIBUTION } from './snapshot.js';
 import type { HistoryDay } from './types.js';
@@ -9,6 +10,10 @@ export interface IndexedDish {
   fi: string;
   en: string | null;
   tags: DietTag[];
+  /** foldText(fi): how dishes are told apart in "most common". */
+  key: string;
+  /** dishSearchText({ fi, en }): what a text query is matched against. */
+  search: string;
 }
 
 export interface IndexedRestaurantDay {
@@ -39,12 +44,14 @@ export function buildStatsIndex(days: HistoryDay[], generatedAt: string): StatsI
   const sorted = [...days].sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
   const dishes: IndexedDish[] = [];
   const ids = new Map<string, number>();
-  const idOf = (dish: IndexedDish): number => {
-    const key = JSON.stringify([dish.fi, dish.en, dish.tags]);
-    let id = ids.get(key);
+  const idOf = (name: { fi: string; en: string | null }, tags: DietTag[]): number => {
+    const identity = JSON.stringify([name.fi, name.en, tags]);
+    let id = ids.get(identity);
     if (id === undefined) {
+      // Folded here, once per distinct dish, so queries never fold text (phase 3 spec §4.2).
+      const dish = { ...name, tags, key: foldText(name.fi), search: dishSearchText(name) };
       id = dishes.push(dish) - 1;
-      ids.set(key, id);
+      ids.set(identity, id);
     }
     return id;
   };
@@ -54,7 +61,7 @@ export function buildStatsIndex(days: HistoryDay[], generatedAt: string): StatsI
     restaurants: day.restaurants.map(({ id, status }): IndexedRestaurantDay => {
       if (status.kind !== 'open') return { id, status: status.kind };
       const served = status.courses.flatMap((course) =>
-        course.dishes.map((d) => idOf({ fi: d.name.fi, en: d.name.en, tags: d.tags })),
+        course.dishes.map((d) => idOf({ fi: d.name.fi, en: d.name.en }, d.tags)),
       );
       return { id, status: 'open', dishes: served };
     }),

@@ -104,7 +104,13 @@ The collector writes `stats.json` to the root of the `data` branch on every run,
   "attribution": "…same text as history.json…",
   // Every distinct dish once; days refer to it by index.
   "dishes": [
-    { "fi": "Lohikeitto", "en": "Salmon soup", "tags": ["gluten_free", "lactose_free"] }
+    {
+      "fi": "Lohikeitto",
+      "en": "Salmon soup",
+      "tags": ["gluten_free", "lactose_free"],
+      "key": "lohikeitto",
+      "search": "lohikeitto salmon soup"
+    }
   ],
   "days": [
     {
@@ -120,6 +126,9 @@ The collector writes `stats.json` to the root of the `data` branch on every run,
 
 - A dish's identity is its `fi` name, `en` name and tags together; the same dish served on many
   days is stored once.
+- `key` (`foldText(fi)`, how "most common" tells dishes apart) and `search` (the folded Finnish
+  and English names a text query matches) are computed by the collector. Folding text is the
+  most expensive step of a query (about 4.7 ms for three years of dishes), so queries never do it.
 - `status` is the status kind only (`open`, `no_menu`, `error`); `dishes` appears only for `open`
   and keeps menu order (course order, then dish order).
 - Days are sorted by date, restaurants in registry order, as in `history.json`.

@@ -1,4 +1,4 @@
-import { foldText } from '../core/normalize/text.js';
+import { dishSearchText, foldText } from '../core/normalize/text.js';
 import type { Allergen, DietTag, Dish } from '../core/types.js';
 
 export interface DishFilter {
@@ -27,12 +27,32 @@ export function allergenVerdict(
   return assessed.includes(allergen) ? 'ok' : 'unverifiable';
 }
 
+/**
+ * The diet and text-query part of the filter on already folded text: `search` is
+ * dishSearchText(name), `foldedQuery` is foldText(query). Statistics call it with values folded
+ * once per dish and query.
+ */
+export function matchesSearch(
+  search: string,
+  tags: DietTag[],
+  diet: DietTag[] | undefined,
+  foldedQuery: string | undefined,
+): boolean {
+  if (diet?.some((tag) => !tags.includes(tag))) return false;
+  return !foldedQuery || search.includes(foldedQuery);
+}
+
+export function matchesNameAndDiet(
+  name: { fi: string; en: string | null },
+  tags: DietTag[],
+  filter: Pick<DishFilter, 'query' | 'diet'>,
+): boolean {
+  const query = filter.query ? foldText(filter.query) : undefined;
+  return matchesSearch(dishSearchText(name), tags, filter.diet, query);
+}
+
 export function judgeDish(dish: Dish, filter: DishFilter): FilterVerdict {
-  if (filter.diet?.some((tag) => !dish.tags.includes(tag))) return 'hidden';
-  if (filter.query) {
-    const haystack = foldText(`${dish.name.fi} ${dish.name.en ?? ''}`);
-    if (!haystack.includes(foldText(filter.query))) return 'hidden';
-  }
+  if (!matchesNameAndDiet(dish.name, dish.tags, filter)) return 'hidden';
   const verdicts = (filter.excludeAllergens ?? []).map((a) => allergenVerdict(dish, a));
   if (verdicts.includes('excluded')) return 'hidden';
   if (verdicts.includes('unverifiable')) return 'unverifiable';

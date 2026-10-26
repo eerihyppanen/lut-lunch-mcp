@@ -73,6 +73,22 @@ export function datesInRange(from: string, to: string): string[] {
   return Array.from({ length: Math.max(0, count + 1) }, (_, i) => addDays(from, i));
 }
 
+/** Every month (YYYY-MM) the range touches, in order. Empty when `to` is before `from`. */
+export function monthsInRange(from: string, to: string): string[] {
+  if (to < from) return [];
+  const months: string[] = [];
+  let year = Number(from.slice(0, 4));
+  let month = Number(from.slice(5, 7));
+  const last = to.slice(0, 7);
+  for (;;) {
+    const key = `${year}-${String(month).padStart(2, '0')}`;
+    months.push(key);
+    if (key >= last) return months;
+    month = month === 12 ? 1 : month + 1;
+    if (month === 1) year++;
+  }
+}
+
 export function weekdayName(date: string): Weekday {
   return WEEKDAYS[(toUtc(date).getUTCDay() + 6) % 7]!;
 }

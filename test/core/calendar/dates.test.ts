@@ -8,6 +8,7 @@ import {
   isValidIsoDate,
   isWeekend,
   isoWeekMonday,
+  monthsInRange,
   resolveDateInput,
   weekdayName,
 } from '../../../src/core/calendar/dates.js';
@@ -24,6 +25,17 @@ describe('helsinkiToday', () => {
 });
 
 describe('date arithmetic', () => {
+  it('lists the months a range touches, across year ends', () => {
+    expect(monthsInRange('2026-11-30', '2027-02-01')).toEqual([
+      '2026-11',
+      '2026-12',
+      '2027-01',
+      '2027-02',
+    ]);
+    expect(monthsInRange('2026-10-24', '2026-10-26')).toEqual(['2026-10']);
+    expect(monthsInRange('2026-10-26', '2026-10-24')).toEqual([]);
+  });
+
   it('adds days across month and year ends', () => {
     expect(addDays('2026-10-25', 1)).toBe('2026-10-26');
     expect(addDays('2026-12-31', 1)).toBe('2027-01-01');

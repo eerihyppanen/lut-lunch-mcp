@@ -1,12 +1,11 @@
 import { beforeAll, describe, expect, it } from 'vitest';
-import { buildHistoryDataset, indexHistory } from '../../src/core/history/snapshot.js';
-import type { History } from '../../src/core/history/types.js';
+import { buildStatsIndex, type StatsIndex } from '../../src/core/history/stats-index.js';
 import { computeStats, type StatsQuery } from '../../src/mcp/stats.js';
-import { fixtureHistory } from '../helpers/history-fixture.js';
+import { fixtureHistoryDays } from '../helpers/history-fixture.js';
 
 // Fixture history: 19–25 Oct 2026 from the captured menus, the 21st missing, Yolo's collection
 // failed on the 22nd. Expected values were computed from that data when the plan was written.
-let h: History;
+let h: StatsIndex;
 const base: StatsQuery = {
   restaurants: ['lut-buffet', 'bistro-skinnarila', 'yolo'],
   from: '2026-10-19',
@@ -17,7 +16,7 @@ const base: StatsQuery = {
 };
 
 beforeAll(async () => {
-  h = await fixtureHistory();
+  h = buildStatsIndex(await fixtureHistoryDays(), 'T');
 });
 
 describe('computeStats', () => {
@@ -123,7 +122,7 @@ describe('computeStats', () => {
   });
 
   it('handles an empty history', () => {
-    const empty = indexHistory(buildHistoryDataset([], 'T'));
+    const empty = buildStatsIndex([], 'T');
     const s = computeStats(empty, { ...base, query: 'lohi' });
     expect(s.history).toEqual({
       first_date: null,

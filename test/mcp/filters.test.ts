@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { parsePowerestaDates } from '../../src/core/sources/poweresta.js';
-import { allergenVerdict, hasFilters, judgeDish } from '../../src/mcp/filters.js';
+import {
+  allergenVerdict,
+  hasFilters,
+  judgeDish,
+  matchesNameAndDiet,
+} from '../../src/mcp/filters.js';
 import { presentDish } from '../../src/mcp/present.js';
 import { fixtureJson } from '../helpers/fixtures.js';
 
@@ -8,6 +13,15 @@ const fri = parsePowerestaDates(fixtureJson('poweresta/week-2026-10-19.json')).d
 const casserole = fri[1]!.dishes[0]!; // tagged G, allergen list says gluten (oats)
 const fish = fri[3]!.dishes[0]!;
 const soup = fri[0]!.dishes[0]!; // no allergen list
+
+describe('matchesNameAndDiet', () => {
+  it('matches name and diet the same way judgeDish does', () => {
+    const name = { fi: 'Itämaista linssikeittoa', en: 'Oriental lentil soup' };
+    expect(matchesNameAndDiet(name, ['vegan'], { query: 'itamaista', diet: ['vegan'] })).toBe(true);
+    expect(matchesNameAndDiet(name, ['vegan'], { query: 'lohi' })).toBe(false);
+    expect(matchesNameAndDiet(name, [], { diet: ['vegan'] })).toBe(false);
+  });
+});
 
 describe('allergen filtering', () => {
   it('lets the label win for gluten (review focus 2)', () => {
