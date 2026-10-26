@@ -2,6 +2,17 @@
 
 All notable changes to this project. Versions follow [semantic versioning](https://semver.org).
 
+## 0.2.2 (unreleased)
+
+### Changed
+
+- The server reads the day files it needs and a compact `stats.json` index instead of the whole
+  `history.json`, so past days and `menu_stats` need far less downloading and work; `menu_stats`
+  over three years of history takes a few milliseconds.
+- The collector also writes `stats.json` to the data branch.
+- `LUT_LUNCH_HISTORY_URL` now names the data branch base URL; a URL ending in `history.json` still
+  works.
+
 ## 0.2.1 (2026-10-25)
 
 ### Fixed

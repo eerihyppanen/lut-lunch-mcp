@@ -1,7 +1,7 @@
 // Daily menu history collector (spec §5). Run by .github/workflows/collect.yml:
 //   tsx scripts/collect.ts [--data-dir data] [--date YYYY-MM-DD] [--fail-on-error]
 // Fetches one day for every restaurant, merges it into days/YYYY/MM/YYYY-MM-DD.json and
-// updates history.json. Earlier days of the same week are fetched too, and any menu a missed
+// updates history.json and stats.json. Earlier days of the same week are fetched too, and any menu a missed
 // run did not record is filled in. Files are only rewritten when their content changes, so a
 // repeat run on a complete day leaves the data branch untouched.
 
@@ -15,6 +15,7 @@ import {
   mergeHistoryDay,
   toHistoryDay,
 } from '../src/core/history/snapshot.js';
+import { buildStatsIndex } from '../src/core/history/stats-index.js';
 import type { HistoryDataset, HistoryDay } from '../src/core/history/types.js';
 import { USER_AGENT, createFetchHttpClient } from '../src/core/http.js';
 import { createLiveMenuService } from '../src/core/menu-service.js';
@@ -34,6 +35,7 @@ export interface CollectResult {
   exitCode: 0 | 1;
   wroteDay: boolean;
   wroteHistory: boolean;
+  wroteStats: boolean;
   /** Earlier days of the week whose files a menu was added to. */
   backfilled: string[];
 }
@@ -64,6 +66,17 @@ function readHistory(path: string): HistoryDataset | null {
   try {
     const parsed = HistoryDatasetSchema.safeParse(JSON.parse(readFileSync(path, 'utf8')));
     return parsed.success && parsed.data.schema === 1 ? (parsed.data as HistoryDataset) : null;
+  } catch {
+    return null;
+  }
+}
+
+/** A JSON file's content, or null when it is missing or unreadable. */
+function readJsonFile(path: string): object | null {
+  if (!existsSync(path)) return null;
+  try {
+    const json: unknown = JSON.parse(readFileSync(path, 'utf8'));
+    return typeof json === 'object' ? json : null;
   } catch {
     return null;
   }
@@ -129,6 +142,13 @@ export async function runCollect(opts: CollectOptions): Promise<CollectResult> {
   const wroteHistory = !previous || withoutTime(previous) !== withoutTime(dataset);
   if (wroteHistory) writeFile(historyPath, `${JSON.stringify(dataset)}\n`);
 
+  // stats.json, which the server reads (phase 3 spec §4.4), comes from the same days.
+  const statsPath = join(dataDir, 'stats.json');
+  const stats = buildStatsIndex([...days.values()], collectedAt);
+  const previousStats = readJsonFile(statsPath);
+  const wroteStats = !previousStats || withoutTime(previousStats) !== withoutTime(stats);
+  if (wroteStats) writeFile(statsPath, `${JSON.stringify(stats)}\n`);
+
   for (const d of backfilled) opts.log(`backfilled ${d}`);
   for (const { id, status } of day.restaurants) {
     opts.log(`${id}: ${status.kind}${status.kind === 'no_menu' ? ` ${status.reason}` : ''}`);
@@ -138,6 +158,7 @@ export async function runCollect(opts: CollectOptions): Promise<CollectResult> {
     exitCode: opts.failOnError && failed ? 1 : 0,
     wroteDay: merged !== null,
     wroteHistory,
+    wroteStats,
     backfilled,
   };
 }
@@ -160,6 +181,7 @@ if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
   console.error(
     `day file ${result.wroteDay ? 'written' : 'unchanged'}, ` +
       `history.json ${result.wroteHistory ? 'written' : 'unchanged'}, ` +
+      `stats.json ${result.wroteStats ? 'written' : 'unchanged'}, ` +
       `${result.backfilled.length} earlier day(s) backfilled`,
   );
   process.exit(result.exitCode);

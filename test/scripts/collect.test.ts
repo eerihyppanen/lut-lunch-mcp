@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { runCollect } from '../../scripts/collect.js';
+import { StatsIndexSchema } from '../../src/core/history/schema.js';
 import type { HistoryDataset, HistoryDay } from '../../src/core/history/types.js';
 import {
   RESTAURANT_IDS,
@@ -82,7 +83,13 @@ describe('runCollect', () => {
       now,
       log,
     });
-    expect(r).toEqual({ exitCode: 0, wroteDay: true, wroteHistory: true, backfilled: [] });
+    expect(r).toEqual({
+      exitCode: 0,
+      wroteDay: true,
+      wroteHistory: true,
+      wroteStats: true,
+      backfilled: [],
+    });
     const day = readJson<HistoryDay>(dayFile('2026-10-26'));
     expect(day.restaurants.map((x: { status: { kind: string } }) => x.status.kind)).toEqual([
       'open',
@@ -126,6 +133,7 @@ describe('runCollect', () => {
       log,
     });
     const before = readFileSync(join(dataDir, 'history.json'), 'utf8');
+    const statsBefore = readFileSync(join(dataDir, 'stats.json'), 'utf8');
     const r = await runCollect({
       dataDir,
       date: '2026-10-26',
@@ -134,8 +142,15 @@ describe('runCollect', () => {
       now: later,
       log,
     });
-    expect(r).toEqual({ exitCode: 0, wroteDay: false, wroteHistory: false, backfilled: [] });
+    expect(r).toEqual({
+      exitCode: 0,
+      wroteDay: false,
+      wroteHistory: false,
+      wroteStats: false,
+      backfilled: [],
+    });
     expect(readFileSync(join(dataDir, 'history.json'), 'utf8')).toBe(before);
+    expect(readFileSync(join(dataDir, 'stats.json'), 'utf8')).toBe(statsBefore);
   });
 
   it('includes earlier days in history.json', async () => {
@@ -253,5 +268,30 @@ describe('runCollect', () => {
     await run('2026-10-26');
     const hist = readJson<HistoryDataset>(join(dataDir, 'history.json'));
     expect(hist).toMatchObject({ schema: 1, firstDate: '2026-10-19', lastDate: '2026-10-26' });
+  });
+
+  it('writes stats.json for the same days as history.json (phase 3)', async () => {
+    const run = (date: string) =>
+      runCollect({ dataDir, date, failOnError: false, service: svc(open, open, err), now, log });
+    await run('2026-10-26');
+    await run('2026-10-27');
+    const stats = StatsIndexSchema.parse(readJson(join(dataDir, 'stats.json')));
+    const hist = readJson<HistoryDataset>(join(dataDir, 'history.json'));
+    expect(stats.days.map((d) => d.date)).toEqual(hist.days.map((d) => d.date));
+    expect(stats.days[0]!.restaurants.map((r) => r.status)).toEqual(['open', 'open', 'error']);
+    expect(stats.dishes.map((d) => d.fi)).toEqual(['Keitto']);
+  });
+
+  it('rebuilds both files from the day files when history.json is unreadable (review focus)', async () => {
+    const run = (date: string) =>
+      runCollect({ dataDir, date, failOnError: false, service: svc(open, open, open), now, log });
+    await run('2026-10-19');
+    writeFileSync(join(dataDir, 'history.json'), '{"schema": 2}');
+    const r = await run('2026-10-26');
+    expect(r).toMatchObject({ wroteHistory: true, wroteStats: true });
+    const stats = StatsIndexSchema.parse(readJson(join(dataDir, 'stats.json')));
+    const hist = readJson<HistoryDataset>(join(dataDir, 'history.json'));
+    expect(stats.days.map((d) => d.date)).toEqual(['2026-10-19', '2026-10-26']);
+    expect(hist.days.map((d) => d.date)).toEqual(['2026-10-19', '2026-10-26']);
   });
 });

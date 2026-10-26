@@ -384,6 +384,9 @@ later." (retryable) or the schema message (§4.3). No recorded days → normal r
 
 ## 11. Seams for phase 3
 
+Used and partly superseded by `docs/specs/2026-10-26-phase-3-remote-design.md`: the Worker reads
+day files and a compact `stats.json` instead of `history.json`, and `CacheStore` is asynchronous.
+
 - A Worker can use `createRemoteHistoryStore` as it is (`fetch` only), or swap in a D1-backed
   `HistoryStore` with the same interface; tools do not change.
 - The Worker's own cron can replace the Actions collector by calling the same pure functions in

@@ -105,15 +105,18 @@ All menus belong to their operators; every result links back to the source.
 The restaurants' sites only show current and upcoming menus, so history has to be recorded as it
 happens. A [GitHub Actions workflow](.github/workflows/collect.yml) fetches every restaurant's menu
 each morning (with two retries later in the morning) and commits it to the
-[`data` branch](https://github.com/eerihyppanen/lut-lunch-mcp/tree/data): one JSON file per day plus a
-combined `history.json`. GitHub sometimes skips scheduled runs, so each run also fills in menus
-missing from earlier days of the same week. The server downloads that file when it is first asked about the past
-(at most every 6 hours) and answers past-day, "how often" and "when last" questions from it.
+[`data` branch](https://github.com/eerihyppanen/lut-lunch-mcp/tree/data): one JSON file per day, a
+combined `history.json` for anyone who wants the whole dataset, and `stats.json`, a compact index
+of every dish served. GitHub sometimes skips scheduled runs, so each run also fills in menus
+missing from earlier days of the same week. The server reads the day files it needs and
+`stats.json` when it is first asked about the past (at most every 6 hours) and answers
+past-day, "how often" and "when last" questions from them.
 
 History starts on 2026-10-24, the first day the collector ran; every `menu_stats` result states the period it
 covers. Only what the server needs is stored (names, prices, diet labels, allergens), with
-attribution to each restaurant. Set `LUT_LUNCH_HISTORY_URL` to use another `history.json`, e.g. a
-fork's.
+attribution to each restaurant. Set `LUT_LUNCH_HISTORY_URL` to the base URL of another data branch, e.g. a
+fork's (`https://raw.githubusercontent.com/<owner>/lut-lunch-mcp/data/`); a URL ending in
+`history.json`, as used before 0.2.2, still works.
 
 ## Design decisions
 
