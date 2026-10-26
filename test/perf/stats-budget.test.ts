@@ -1,7 +1,10 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 import { addDays, daysBetween, isWeekend } from '../../src/core/calendar/dates.js';
-import { StatsIndexSchema } from '../../src/core/history/schema.js';
-import { buildStatsIndex, type StatsIndex } from '../../src/core/history/stats-index.js';
+import {
+  buildStatsIndex,
+  decodeStatsIndex,
+  encodeStatsIndex,
+} from '../../src/core/history/stats-index.js';
 import type { HistoryDay } from '../../src/core/history/types.js';
 import { RESTAURANT_IDS } from '../../src/core/types.js';
 import { computeStats } from '../../src/mcp/stats.js';
@@ -59,13 +62,13 @@ async function threeYears(): Promise<HistoryDay[]> {
 let text: string;
 
 beforeAll(async () => {
-  text = JSON.stringify(buildStatsIndex(await threeYears(), 'T'));
+  text = JSON.stringify(encodeStatsIndex(buildStatsIndex(await threeYears(), 'T')));
 });
 
 describe('CPU budget', () => {
   it('parses and queries three years of history well within 10 ms', () => {
     const run = () => {
-      const index = StatsIndexSchema.parse(JSON.parse(text)) as StatsIndex;
+      const index = decodeStatsIndex(JSON.parse(text))!;
       computeStats(index, {
         restaurants: [...RESTAURANT_IDS],
         from: index.firstDate!,

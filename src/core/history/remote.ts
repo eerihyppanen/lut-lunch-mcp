@@ -1,7 +1,7 @@
 import type { CachedLoader } from '../cache.js';
 import { SourceError, type HttpClient } from '../http.js';
-import { HistoryDaySchema, StatsIndexSchema } from './schema.js';
-import type { StatsIndex } from './stats-index.js';
+import { HistoryDaySchema } from './schema.js';
+import { decodeStatsIndex, type StatsIndex } from './stats-index.js';
 import type { HistoryDay, HistoryStore } from './types.js';
 
 /** The data branch root, written daily by .github/workflows/collect.yml. */
@@ -30,19 +30,28 @@ export function historyBaseUrl(value: string): string {
   return base.endsWith('/') ? base : `${base}/`;
 }
 
-function parse<T>(
-  json: unknown,
-  schema: { safeParse(v: unknown): { success: boolean; data?: unknown } },
-): T {
-  // Check the version first, so a newer collector's data asks for an update instead of
-  // looking broken.
+/** Checks the version first, so a newer collector's data asks for an update, not looks broken. */
+function checkVersion(json: unknown): void {
   const version = (json as { schema?: unknown } | null)?.schema;
   if (typeof version === 'number' && version !== SUPPORTED_SCHEMA) {
     throw new HistorySchemaError(version);
   }
-  const parsed = schema.safeParse(json);
-  if (!parsed.success) throw new SourceError('History data is malformed', false);
-  return parsed.data as T;
+}
+
+const malformed = () => new SourceError('History data is malformed', false);
+
+function parseStats(json: unknown): StatsIndex {
+  checkVersion(json);
+  const index = decodeStatsIndex(json);
+  if (!index) throw malformed();
+  return index;
+}
+
+function parseDay(json: unknown): HistoryDay {
+  checkVersion(json);
+  const parsed = HistoryDaySchema.safeParse(json);
+  if (!parsed.success) throw malformed();
+  return parsed.data as HistoryDay;
 }
 
 /** Reads stats.json and day files from the data branch lazily, through the shared cache. */
@@ -53,7 +62,7 @@ export function createRemoteHistoryStore(
 ): HistoryStore {
   async function statsIndex(): Promise<StatsIndex> {
     const { value } = await loader.load('stats', FRESH_MS, async () =>
-      parse<StatsIndex>(await http.getJson(`${baseUrl}stats.json`), StatsIndexSchema),
+      parseStats(await http.getJson(`${baseUrl}stats.json`)),
     );
     return value;
   }
@@ -62,7 +71,7 @@ export function createRemoteHistoryStore(
     const url = `${baseUrl}days/${date.slice(0, 4)}/${date.slice(5, 7)}/${date}.json`;
     try {
       const { value } = await loader.load(`day:${date}`, FRESH_MS, async () =>
-        parse<HistoryDay>(await http.getJson(url), HistoryDaySchema),
+        parseDay(await http.getJson(url)),
       );
       return value;
     } catch (error) {

@@ -64,33 +64,3 @@ export const HistoryDatasetSchema = z.object({
   ),
   days: z.array(HistoryDaySchema),
 });
-
-/** stats.json: every distinct dish once, days referring to dishes by index (phase 3 spec §4.1). */
-export const StatsIndexSchema = z.object({
-  schema: z.number(),
-  generatedAt: z.string(),
-  firstDate: z.string().nullable(),
-  lastDate: z.string().nullable(),
-  attribution: z.string(),
-  dishes: z.array(
-    z.object({
-      fi: z.string(),
-      en: z.string().nullable(),
-      tags: z.array(z.enum(DIET_TAGS)),
-      key: z.string(),
-      search: z.string(),
-    }),
-  ),
-  days: z.array(
-    z.object({
-      date: z.string(),
-      restaurants: z.array(
-        z.object({
-          id: z.enum(RESTAURANT_IDS),
-          status: z.enum(['open', 'no_menu', 'error']),
-          dishes: z.array(z.number().int().nonnegative()).optional(),
-        }),
-      ),
-    }),
-  ),
-});

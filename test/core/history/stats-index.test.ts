@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { StatsIndexSchema } from '../../../src/core/history/schema.js';
-import { buildStatsIndex } from '../../../src/core/history/stats-index.js';
+import {
+  buildStatsIndex,
+  decodeStatsIndex,
+  encodeStatsIndex,
+} from '../../../src/core/history/stats-index.js';
 import { dishSearchText, foldText } from '../../../src/core/normalize/text.js';
 import { fixtureHistoryDays } from '../../helpers/history-fixture.js';
 
@@ -15,10 +18,12 @@ describe('buildStatsIndex', () => {
     expect(keys.size).toBe(index.dishes.length);
     expect(index.dishes.length).toBeLessThan(served.length);
     // Folded once by the collector, so queries never fold text (phase 3 CPU budget).
-    for (const d of index.dishes) {
-      expect(d.key).toBe(foldText(d.fi));
+    index.dishes.forEach((d, i) => {
       expect(d.search).toBe(dishSearchText(d));
-    }
+      const first = index.dishes.findIndex((o) => foldText(o.fi) === foldText(d.fi));
+      expect(d.group).toBe(first); // dishes with the same Finnish name share a group
+      expect(first).toBeLessThanOrEqual(i);
+    });
 
     const first = index.days[0]!.restaurants[0]!; // 2026-10-19, lut-buffet
     const recorded = days[0]!.restaurants[0]!.status;
@@ -45,16 +50,40 @@ describe('buildStatsIndex', () => {
     expect(yolo22).toEqual({ id: 'yolo', status: 'error' });
   });
 
-  it('is deterministic and validates against its schema', async () => {
+  it('is deterministic', async () => {
     const days = await fixtureHistoryDays();
     const a = buildStatsIndex(days, 'T');
     expect(JSON.stringify(buildStatsIndex([...days].reverse(), 'T'))).toBe(JSON.stringify(a));
-    expect(StatsIndexSchema.parse(JSON.parse(JSON.stringify(a)))).toEqual(a);
     expect(buildStatsIndex([], 'T')).toMatchObject({
       firstDate: null,
       lastDate: null,
       dishes: [],
       days: [],
     });
+  });
+});
+
+describe('stats.json encoding', () => {
+  it('round-trips through a compact file', async () => {
+    const index = buildStatsIndex(await fixtureHistoryDays(), 'T');
+    const file = JSON.stringify(encodeStatsIndex(index));
+    expect(decodeStatsIndex(JSON.parse(file))).toEqual(index);
+    expect(file.length).toBeLessThan(JSON.stringify(index).length / 1.5);
+    const empty = buildStatsIndex([], 'T');
+    expect(decodeStatsIndex(JSON.parse(JSON.stringify(encodeStatsIndex(empty))))).toEqual(empty);
+  });
+
+  it('rejects malformed files', async () => {
+    const good = encodeStatsIndex(buildStatsIndex(await fixtureHistoryDays(), 'T'));
+    const variants: unknown[] = [
+      'not an object',
+      { ...good, days: 'nope' },
+      { ...good, restaurants: ['nowhere'] },
+      { ...good, tags: ['carnivore'] },
+      { ...good, dishes: [['Keitto', null, 0, 'keitto', 5]] }, // group points ahead
+      { ...good, days: [['2026-10-19', [['open', [999]]]]] }, // unknown dish
+      { ...good, days: [['2026-10-19', [['closed']]]] }, // unknown status
+    ];
+    for (const json of variants) expect(decodeStatsIndex(json)).toBeNull();
   });
 });

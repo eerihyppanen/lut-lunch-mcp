@@ -5,7 +5,7 @@ import {
   createRemoteHistoryStore,
   historyBaseUrl,
 } from '../../../src/core/history/remote.js';
-import { buildStatsIndex } from '../../../src/core/history/stats-index.js';
+import { buildStatsIndex, encodeStatsIndex } from '../../../src/core/history/stats-index.js';
 import type { HistoryDay } from '../../../src/core/history/types.js';
 import { SourceError, type HttpClient } from '../../../src/core/http.js';
 import { fixtureHistoryDays } from '../../helpers/history-fixture.js';
@@ -18,7 +18,7 @@ const dayUrl = (date: string) => `${BASE}days/${date.slice(0, 4)}/${date.slice(5
 async function dataBranch(overrides: Record<string, () => Promise<unknown>> = {}) {
   const days = await fixtureHistoryDays();
   const files: Record<string, () => Promise<unknown>> = {
-    [`${BASE}stats.json`]: () => Promise.resolve(buildStatsIndex(days, 'T')),
+    [`${BASE}stats.json`]: () => Promise.resolve(encodeStatsIndex(buildStatsIndex(days, 'T'))),
     ...Object.fromEntries(days.map((d) => [dayUrl(d.date), () => Promise.resolve(copy(d))])),
     ...overrides,
   };

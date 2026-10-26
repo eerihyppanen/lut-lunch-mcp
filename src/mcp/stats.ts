@@ -74,7 +74,7 @@ export function computeStats(index: StatsIndex, q: StatsQuery): Stats {
   // Judged once per distinct dish on text the collector already folded (phase 3 spec §4.2).
   const matches = index.dishes.map((dish) => matchesSearch(dish.search, dish.tags, q.diet, query));
   const names = index.dishes.map((dish) => localName(dish, q.language));
-  const top = new Map<string, TopEntry>();
+  const top = new Map<number, TopEntry>();
   let daysServed = 0;
   let dishesMatched = 0;
   let firstSeen: Seen | null = null;
@@ -87,7 +87,7 @@ export function computeStats(index: StatsIndex, q: StatsQuery): Stats {
       const group = groups.get(groupKey(q.groupBy, date, id));
       if (group) group.open_days++;
 
-      const servedHere = new Set<string>();
+      const servedHere = new Set<number>();
       for (const dish of dishes) {
         if (!matches[dish]) continue;
         dishesMatched++;
@@ -95,7 +95,7 @@ export function computeStats(index: StatsIndex, q: StatsQuery): Stats {
         firstSeen ??= seen;
         if (!lastSeen || date > lastSeen.date) lastSeen = seen;
 
-        const key = index.dishes[dish]!.key;
+        const key = index.dishes[dish]!.group;
         if (servedHere.has(key)) continue; // a dish counts once per restaurant-day
         servedHere.add(key);
         const entry = top.get(key);

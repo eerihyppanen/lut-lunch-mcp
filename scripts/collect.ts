@@ -15,7 +15,7 @@ import {
   mergeHistoryDay,
   toHistoryDay,
 } from '../src/core/history/snapshot.js';
-import { buildStatsIndex } from '../src/core/history/stats-index.js';
+import { buildStatsIndex, encodeStatsIndex } from '../src/core/history/stats-index.js';
 import type { HistoryDataset, HistoryDay } from '../src/core/history/types.js';
 import { USER_AGENT, createFetchHttpClient } from '../src/core/http.js';
 import { createLiveMenuService } from '../src/core/menu-service.js';
@@ -144,7 +144,7 @@ export async function runCollect(opts: CollectOptions): Promise<CollectResult> {
 
   // stats.json, which the server reads (phase 3 spec §4.4), comes from the same days.
   const statsPath = join(dataDir, 'stats.json');
-  const stats = buildStatsIndex([...days.values()], collectedAt);
+  const stats = encodeStatsIndex(buildStatsIndex([...days.values()], collectedAt));
   const previousStats = readJsonFile(statsPath);
   const wroteStats = !previousStats || withoutTime(previousStats) !== withoutTime(stats);
   if (wroteStats) writeFile(statsPath, `${JSON.stringify(stats)}\n`);

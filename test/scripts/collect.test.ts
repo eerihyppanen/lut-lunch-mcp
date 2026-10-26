@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { runCollect } from '../../scripts/collect.js';
-import { StatsIndexSchema } from '../../src/core/history/schema.js';
+import { decodeStatsIndex } from '../../src/core/history/stats-index.js';
 import type { HistoryDataset, HistoryDay } from '../../src/core/history/types.js';
 import {
   RESTAURANT_IDS,
@@ -275,7 +275,7 @@ describe('runCollect', () => {
       runCollect({ dataDir, date, failOnError: false, service: svc(open, open, err), now, log });
     await run('2026-10-26');
     await run('2026-10-27');
-    const stats = StatsIndexSchema.parse(readJson(join(dataDir, 'stats.json')));
+    const stats = decodeStatsIndex(readJson(join(dataDir, 'stats.json')))!;
     const hist = readJson<HistoryDataset>(join(dataDir, 'history.json'));
     expect(stats.days.map((d) => d.date)).toEqual(hist.days.map((d) => d.date));
     expect(stats.days[0]!.restaurants.map((r) => r.status)).toEqual(['open', 'open', 'error']);
@@ -289,7 +289,7 @@ describe('runCollect', () => {
     writeFileSync(join(dataDir, 'history.json'), '{"schema": 2}');
     const r = await run('2026-10-26');
     expect(r).toMatchObject({ wroteHistory: true, wroteStats: true });
-    const stats = StatsIndexSchema.parse(readJson(join(dataDir, 'stats.json')));
+    const stats = decodeStatsIndex(readJson(join(dataDir, 'stats.json')))!;
     const hist = readJson<HistoryDataset>(join(dataDir, 'history.json'));
     expect(stats.days.map((d) => d.date)).toEqual(['2026-10-19', '2026-10-26']);
     expect(hist.days.map((d) => d.date)).toEqual(['2026-10-19', '2026-10-26']);

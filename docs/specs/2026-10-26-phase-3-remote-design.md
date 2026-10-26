@@ -93,7 +93,9 @@ graph fails the build (§9).
 ### 4.1 `stats.json`
 
 The collector writes `stats.json` to the root of the `data` branch on every run, next to
-`history.json`, built in memory from the same set of days (no extra file reads):
+`history.json`, built in memory from the same set of days (no extra file reads). Parsing is most
+of a cold request's CPU, so the file is compact; it names its own orders, so it still explains
+itself:
 
 ```jsonc
 {
@@ -102,39 +104,32 @@ The collector writes `stats.json` to the root of the `data` branch on every run,
   "firstDate": "2026-10-24",
   "lastDate": "2026-10-26",
   "attribution": "…same text as history.json…",
-  // Every distinct dish once; days refer to it by index.
-  "dishes": [
-    {
-      "fi": "Lohikeitto",
-      "en": "Salmon soup",
-      "tags": ["gluten_free", "lactose_free"],
-      "key": "lohikeitto",
-      "search": "lohikeitto salmon soup"
-    }
-  ],
-  "days": [
-    {
-      "date": "2026-10-26",
-      "restaurants": [
-        { "id": "lut-buffet", "status": "open", "dishes": [0, 4, 9] },
-        { "id": "yolo", "status": "error" }
-      ]
-    }
-  ]
+  "restaurants": ["lut-buffet", "bistro-skinnarila", "yolo"], // order of each day's entries
+  "tags": ["vegan", "vegetarian", "gluten_free", "milk_free", "lactose_free", "low_lactose"], // bit order
+  // Every distinct dish once: [fi, en, diet-tag bits, search text, group]; days refer to it by index.
+  "dishes": [["Lohikeitto", "Salmon soup", 20, "lohikeitto salmon soup", 0]],
+  // [date, one entry per restaurant: [status] or [status, dish indexes], null when not recorded]
+  "days": [["2026-10-26", [["open", [0, 4, 9]], ["no_menu"], ["error"]]]]
 }
 ```
 
 - A dish's identity is its `fi` name, `en` name and tags together; the same dish served on many
   days is stored once.
-- `key` (`foldText(fi)`, how "most common" tells dishes apart) and `search` (the folded Finnish
-  and English names a text query matches) are computed by the collector. Folding text is the
-  most expensive step of a query (about 4.7 ms for three years of dishes), so queries never do it.
-- `status` is the status kind only (`open`, `no_menu`, `error`); `dishes` appears only for `open`
-  and keeps menu order (course order, then dish order).
-- Days are sorted by date, restaurants in registry order, as in `history.json`.
-- `buildStatsIndex(days: HistoryDay[], generatedAt)` lives in `src/core/history/stats-index.ts`
-  and is deterministic: the same days give byte-identical output apart from `generatedAt`.
-- Size estimate: about 150–200 KB per year, versus 1.94 MB for `history.json`.
+- `search` (the folded Finnish and English names a text query matches) and `group` (the index of
+  the first dish with the same folded Finnish name, which "most common" counts as one dish) are
+  computed by the collector. Folding text is the most expensive step of a query (about 4.7 ms for
+  three years of dishes), so queries never do it.
+- `status` is the status kind only (`open`, `no_menu`, `error`); dish indexes appear only for
+  `open` and keep menu order (course order, then dish order).
+- Days are sorted by date.
+- `buildStatsIndex(days: HistoryDay[], generatedAt)` in `src/core/history/stats-index.ts` builds
+  the in-memory `StatsIndex` (objects, readable in code) and is deterministic.
+  `encodeStatsIndex` turns it into the file; `decodeStatsIndex` validates and decodes the file in
+  one pass (no zod: a hand-written check is cheaper than parsing twice) and returns null when it
+  is malformed.
+- Measured for three years of synthetic history (1,095 days, 2,320 distinct dishes): 370 KB,
+  versus 743 KB for the same index as plain objects and about 5.8 MB for `history.json`.
+  Parsing, decoding and a broad query take a median of about 2.3 ms on the development machine.
 
 ### 4.2 Statistics over the index
 
