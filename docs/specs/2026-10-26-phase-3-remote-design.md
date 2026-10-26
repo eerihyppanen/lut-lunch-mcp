@@ -302,8 +302,11 @@ live sources, well under the 50-subrequest limit. `get_menu` covers at most 7 da
   - `scheduled`: the request body per cron slot (`fail_on_error` only at 10:30), the headers,
     and a thrown error on a non-204 answer.
 - **CPU budget:** a synthetic three-year index (shaped like real day files) is parsed and queried
-  with a broad `menu_stats` query; the test fails if the median exceeds 5 ms (half the limit, as
-  margin for slower machines).
+  with a broad `menu_stats` query; the test fails if the median exceeds 5 ms on a development
+  machine (half the limit, as margin) or 10 ms on CI. Shared CI runners measured the same work
+  1.5–2.4× slower than the development machine and varied between runs, so CI checks the limit
+  itself. The deciding measurement is Cloudflare's own CPU time for a cold `menu_stats` request
+  after the first deploy (Workers Logs).
 - **Bundle check:** CI runs `wrangler deploy --dry-run`, building the real bundle without
   deploying, which catches Node-only imports in any file the Worker loads.
 - **Live:** the deploy workflow's smoke test (§7); `npm run smoke` keeps checking the sources.
