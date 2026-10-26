@@ -2,6 +2,17 @@
 
 All notable changes to this project. Versions follow [semantic versioning](https://semver.org).
 
+## 0.3.1 (2026-10-26)
+
+### Fixed
+
+- Remote server: the rate limit is 600 requests per minute per client address instead of 60.
+  Claude and ChatGPT connectors call from their vendors' shared servers, so one address carries
+  everyone using the same assistant, and 60 could have blocked them all at busy times.
+- Remote server: each request gets its own requests to the menu sources and history, sharing only
+  the cache, so a request can no longer hang waiting for a download another request started.
+- README: rebuild the history files by deleting `history.json` only.
+
 ## 0.3.0 (2026-10-26)
 
 ### Added
