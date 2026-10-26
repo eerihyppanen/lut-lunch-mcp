@@ -2,6 +2,15 @@
 
 All notable changes to this project. Versions follow [semantic versioning](https://semver.org).
 
+## 0.3.0 (unreleased)
+
+### Added
+
+- Remote server on Cloudflare Workers: add `WORKER_URL_PLACEHOLDER` as a connector in Claude or
+  ChatGPT, no install. Same four tools; 60 requests per minute per client.
+- The Worker starts the daily history collection at 06:30, 08:30 and 10:30 UTC, within seconds
+  instead of GitHub's hours-late schedule (which stays as a backup).
+
 ## 0.2.2 (2026-10-26)
 
 ### Changed

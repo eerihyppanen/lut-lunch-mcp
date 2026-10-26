@@ -14,9 +14,25 @@ Claude: Tomorrow is Saturday, so LUT Buffet and Bistro Skinnarila are closed. Yo
         has one vegan dish: Vegetable tikka masala (gluten-free; contains celery).
 ```
 
+## Remote server (no install)
+
+The same server runs on Cloudflare Workers. Add it as a connector, with no authentication:
+
+```
+WORKER_URL_PLACEHOLDER
+```
+
+- **Claude** (claude.ai or the desktop app): Settings → Connectors → Add custom connector, paste the
+  URL.
+- **ChatGPT**: Settings → Apps & Connectors → Advanced settings → enable developer mode, then
+  create a connector with the URL and no authentication.
+
+It allows 60 requests per minute per client, which a conversation never comes close to.
+
 ## Install
 
-Requires Node.js 22 or newer. The server runs locally over stdio; nothing to configure, no API keys.
+To run the server locally instead, you need Node.js 22 or newer. It runs over stdio; nothing to
+configure, no API keys.
 
 ### Claude Desktop
 
@@ -47,7 +63,7 @@ claude mcp add lut-lunch -- npx -y @eerihyppanen/lut-lunch-mcp
 Add the same block as for Claude Desktop to `.cursor/mcp.json` in your project, or to
 `~/.cursor/mcp.json` for all projects.
 
-ChatGPT needs a remote server; that is planned for phase 3 (see [Roadmap](#roadmap)).
+ChatGPT only supports remote servers; use the [remote server](#remote-server-no-install).
 
 ## Example questions
 
@@ -171,7 +187,9 @@ npm test            # unit and end-to-end tests against captured menus (offline)
 npm run inspect     # open the server in MCP Inspector
 npm run smoke       # check the live sources still parse (about 8 requests)
 npm run collect -- --data-dir <folder>   # record today's menus into a local history folder
-npm run lint && npm run typecheck && npm run build
+npm run worker:dev  # run the Worker locally at http://127.0.0.1:8787/mcp
+npm run smoke:remote -- <url of /mcp>    # check a running remote server like a client would
+npm run lint && npm run typecheck && npm run build && npm run worker:check
 ```
 
 Tests run against real menus captured on 2026-10-23 (`test/fixtures/`), so they are deterministic and
@@ -181,7 +199,8 @@ To try a local build in a client, point it at `node /absolute/path/to/dist/bin/s
 `npx`.
 
 Layout: `src/core/` (sources, normalization, calendar, cache, menu service; no Node or MCP imports),
-`src/mcp/` (tools, schemas, formatting), `src/bin/stdio.ts` (entry point). Design notes are in
+`src/mcp/` (tools, schemas, formatting), `src/worker/` (remote server: HTTP, rate limit, collection
+trigger; no Node imports), `src/bin/stdio.ts` and `src/bin/worker.ts` (entry points). Design notes are in
 [`docs/specs/`](docs/specs/); changes per release are in [CHANGELOG.md](CHANGELOG.md).
 
 Releasing (from an up-to-date `main`):
@@ -191,6 +210,24 @@ npm version patch         # bumps package.json and src/version.ts, commits and t
 git push --follow-tags
 npm publish               # runs lint, typecheck, tests and build first; asks for npm 2FA
 ```
+
+The tag also deploys the Worker (`.github/workflows/deploy.yml`) and smoke-tests the deployed
+server.
+
+## Maintenance
+
+- **Collection trigger token.** The Worker starts the daily collection with a fine-grained GitHub
+  token (this repository only, Actions: read and write). GitHub emails before it expires; create a
+  new one and store it with `npx wrangler secret put GITHUB_DISPATCH_TOKEN`. Until then GitHub's
+  own schedule keeps collecting, hours late.
+- **Deploy secrets.** `deploy.yml` needs the repository secrets `CLOUDFLARE_API_TOKEN` (template
+  "Edit Cloudflare Workers") and `CLOUDFLARE_ACCOUNT_ID`, and the variable `WORKER_URL` (the
+  deployed `/mcp` URL).
+- **Rebuilding the history files.** After editing day files on the `data` branch by hand, delete
+  `history.json` and `stats.json` there; the next collection rebuilds both from the day files.
+- **Logs.** The Worker logs one line per request (method, tool, duration, status; no IP addresses
+  or arguments) and each collection trigger. They are in the Cloudflare dashboard under the
+  Worker's Observability tab.
 
 ## Limitations
 
@@ -208,10 +245,10 @@ npm publish               # runs lint, typecheck, tests and build first; asks fo
 ## Roadmap
 
 1. **Phase 1:** local stdio server on npm.
-2. **Phase 2 (this release):** daily history collection and `menu_stats` for "how often" and trend
-   questions.
-3. **Phase 3:** remote MCP server on Cloudflare Workers, so it can be added as a connector without
-   installing anything (including in ChatGPT).
+2. **Phase 2:** daily history collection and `menu_stats` for "how often" and trend questions.
+3. **Phase 3 (this release):** remote MCP server on Cloudflare Workers, so it can be added as a
+   connector without installing anything (including in ChatGPT), and a collection trigger that
+   starts on time.
 
 ## License
 

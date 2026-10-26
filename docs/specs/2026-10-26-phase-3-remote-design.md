@@ -1,6 +1,6 @@
 # LUT Lunch MCP — Phase 3 design: remote server on Cloudflare Workers
 
-Status: draft for review · Date: 2026-10-26 · Builds on:
+Status: approved · Date: 2026-10-26 · Builds on:
 `docs/specs/2026-10-23-phase-1-design.md`, `docs/specs/2026-10-24-phase-2-history-design.md`
 
 ## 1. Purpose
