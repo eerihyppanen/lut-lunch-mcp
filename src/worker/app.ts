@@ -10,7 +10,11 @@ import { RATE_WINDOW_MS, createRateLimiter } from './rate-limit.js';
 // at /, and the scheduled collection trigger. One service, and so one cache, per Worker instance.
 
 export interface WorkerDeps {
-  service: MenuService;
+  /**
+   * A service for one request. Built per request so that no request waits on a fetch another
+   * request started: if that one ends first, Workers cancel its I/O and the waiting request hangs.
+   */
+  serviceFor: () => MenuService;
   fetchFn?: typeof fetch;
   now?: () => number;
   /** One line per MCP request (spec §5.4). */
@@ -78,7 +82,7 @@ export function createWorker(deps: WorkerDeps): LunchWorker {
       .json()
       .catch(() => undefined);
     try {
-      const server = createServer(deps.service, { jsonSchemaValidator });
+      const server = createServer(deps.serviceFor(), { jsonSchemaValidator });
       const transport = new WebStandardStreamableHTTPServerTransport({
         sessionIdGenerator: undefined, // stateless: any instance can answer any request
         enableJsonResponse: true,

@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import type { MenuService, RestaurantDay } from '../../src/core/types.js';
 import { VERSION } from '../../src/version.js';
 import { createWorker } from '../../src/worker/app.js';
@@ -34,7 +34,7 @@ function worker(
   service: MenuService = fakeService([open]),
   log: (line: string) => void = () => {},
 ) {
-  return createWorker({ service, log });
+  return createWorker({ serviceFor: () => service, log });
 }
 
 /** The parts of a JSON-RPC response these tests read. */
@@ -120,6 +120,18 @@ describe('Worker /mcp', () => {
       expect(res.status).toBeLessThan(500);
     },
   );
+});
+
+describe('Worker per-request state', () => {
+  it('builds a fresh service for every request (final review #2)', async () => {
+    // A request must never wait on a fetch another request started: if that request ends first,
+    // Workers cancel its I/O and the waiting one hangs.
+    const serviceFor = vi.fn(() => fakeService([open]));
+    const w = createWorker({ serviceFor, log: () => {} });
+    await mcpPost(w, toolCall('get_menu', { date: '2026-10-23' }));
+    await mcpPost(w, toolCall('get_menu', { date: '2026-10-23' }));
+    expect(serviceFor).toHaveBeenCalledTimes(2);
+  });
 });
 
 describe('Worker other paths', () => {

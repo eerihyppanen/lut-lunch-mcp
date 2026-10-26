@@ -1,10 +1,12 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { CachedLoader, MemoryCacheStore } from '../../src/core/cache.js';
+import { buildStatsIndex, encodeStatsIndex } from '../../src/core/history/stats-index.js';
 import { SourceError } from '../../src/core/http.js';
-import { LiveMenuService } from '../../src/core/menu-service.js';
+import { LiveMenuService, createLiveMenuService } from '../../src/core/menu-service.js';
 import type { MenuSource, SourceResult } from '../../src/core/sources/source.js';
 import type { Course, RestaurantDay } from '../../src/core/types.js';
 import { fakeSource } from '../helpers/fakes.js';
+import { fixtureHistoryDays } from '../helpers/history-fixture.js';
 
 const NOW = new Date('2026-10-23T09:00:00Z');
 
@@ -162,5 +164,20 @@ describe('LiveMenuService', () => {
 
   it("uses Finland's date for today", () => {
     expect(service([], () => new Date('2026-10-23T21:30:00Z')).today()).toBe('2026-10-24');
+  });
+});
+
+describe('createLiveMenuService', () => {
+  it('shares cached data between services built on one store (final review #2)', async () => {
+    // The Worker builds a service per request (so no request waits on another's fetch) on one
+    // store per instance (so cached menus and history are still reused).
+    const index = encodeStatsIndex(buildStatsIndex(await fixtureHistoryDays(), 'T'));
+    const getJson = vi.fn(() => Promise.resolve(index as unknown));
+    const http = { getJson, getText: vi.fn() };
+    const store = new MemoryCacheStore();
+    const opts = { historyBaseUrl: 'https://h/', store };
+    await createLiveMenuService(http, opts).loadStatsIndex();
+    await createLiveMenuService(http, opts).loadStatsIndex();
+    expect(getJson).toHaveBeenCalledTimes(1);
   });
 });

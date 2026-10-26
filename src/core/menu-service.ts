@@ -1,4 +1,4 @@
-import { CachedLoader, MemoryCacheStore, type Loaded } from './cache.js';
+import { CachedLoader, MemoryCacheStore, type CacheStore, type Loaded } from './cache.js';
 import { daysBetween, helsinkiToday, isWeekend } from './calendar/dates.js';
 import { finnishHoliday } from './calendar/holidays.js';
 import { createRemoteHistoryStore } from './history/remote.js';
@@ -229,9 +229,11 @@ export class LiveMenuService implements MenuService {
  */
 export function createLiveMenuService(
   http: HttpClient,
-  opts: { historyBaseUrl?: string } = {},
+  opts: { historyBaseUrl?: string; store?: CacheStore } = {},
 ): LiveMenuService {
-  const loader = new CachedLoader(new MemoryCacheStore(), Date.now);
+  // A shared store keeps cached data across services; each service has its own in-flight
+  // requests (the Worker builds one per request).
+  const loader = new CachedLoader(opts.store ?? new MemoryCacheStore(), Date.now);
   return new LiveMenuService({
     sources: [
       createPowerestaSource(http, loader),

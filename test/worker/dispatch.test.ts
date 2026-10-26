@@ -59,7 +59,7 @@ describe('dispatchCollect', () => {
 describe('Worker scheduled', () => {
   it('sends one dispatch per cron event', async () => {
     const { fetchFn, requests } = fakeFetch();
-    const worker = createWorker({ service: fakeService(), fetchFn, log: () => {} });
+    const worker = createWorker({ serviceFor: () => fakeService(), fetchFn, log: () => {} });
     await worker.scheduled({ cron: '30 8 * * *' }, { GITHUB_DISPATCH_TOKEN: 't' });
     expect(requests).toHaveLength(1);
     expect(await requests[0]!.json()).toEqual({ ref: 'main', inputs: { fail_on_error: 'false' } });
@@ -68,7 +68,11 @@ describe('Worker scheduled', () => {
   it('logs and rethrows a failed dispatch so Cloudflare marks the run failed', async () => {
     const { fetchFn } = fakeFetch(500, 'oops');
     const lines: string[] = [];
-    const worker = createWorker({ service: fakeService(), fetchFn, log: (l) => lines.push(l) });
+    const worker = createWorker({
+      serviceFor: () => fakeService(),
+      fetchFn,
+      log: (l) => lines.push(l),
+    });
     await expect(
       worker.scheduled({ cron: '30 6 * * *' }, { GITHUB_DISPATCH_TOKEN: 't' }),
     ).rejects.toThrow(/HTTP 500/);
