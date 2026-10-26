@@ -3,6 +3,7 @@ import { CfWorkerJsonSchemaValidator } from '@modelcontextprotocol/sdk/validatio
 import type { MenuService } from '../core/types.js';
 import { createServer } from '../mcp/server.js';
 import type { Env } from './env.js';
+import { dispatchCollect } from './dispatch.js';
 import { RATE_WINDOW_MS, createRateLimiter } from './rate-limit.js';
 
 // The remote server (phase 3 spec §3): stateless Streamable HTTP MCP at /mcp, a short text page
@@ -65,6 +66,7 @@ export function createWorker(deps: WorkerDeps): LunchWorker {
   const now = deps.now ?? Date.now;
   const jsonSchemaValidator = new CfWorkerJsonSchemaValidator();
   const limiter = createRateLimiter(now);
+  const fetchFn = deps.fetchFn ?? ((input, init) => fetch(input, init));
 
   /** A POST to /mcp. */
   async function mcp(request: Request): Promise<Response> {
@@ -114,9 +116,15 @@ export function createWorker(deps: WorkerDeps): LunchWorker {
       if (url.pathname === '/' && request.method === 'GET') return aboutPage(url.origin);
       return new Response('Not found\n', { status: 404 });
     },
-    scheduled() {
-      // The collection trigger arrives in the next step (plan Task 8).
-      return Promise.resolve();
+    async scheduled(controller, env) {
+      try {
+        await dispatchCollect(controller.cron, env.GITHUB_DISPATCH_TOKEN, fetchFn);
+        log(JSON.stringify({ scheduled: controller.cron, dispatched: true }));
+      } catch (error) {
+        const reason = error instanceof Error ? error.message : String(error);
+        log(`collect dispatch failed (${controller.cron}): ${reason}`);
+        throw error; // shows the run as failed in the Cloudflare dashboard
+      }
     },
   };
 }

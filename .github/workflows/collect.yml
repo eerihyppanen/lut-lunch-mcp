@@ -2,14 +2,23 @@ name: Collect history
 
 # Records each day's menus into the data branch (spec docs/specs/2026-10-24-phase-2-history-design.md §5).
 # The 06:30 run records the day; 08:30 and 10:30 retry restaurants that failed, and the 10:30 run
-# makes the job fail (and email the owner) if any are still failing. GitHub can skip scheduled
-# runs, so every run also fills in menus missing from earlier days of the same week.
+# makes the job fail (and email the owner) if any are still failing. Every run also fills in
+# menus missing from earlier days of the same week.
+#
+# GitHub starts scheduled runs hours late, so the Cloudflare Worker starts this workflow on time
+# through workflow_dispatch at the same three times (phase 3 spec §6), with fail_on_error true
+# only at 10:30. The schedule below stays as a backup; a late duplicate run changes nothing.
 on:
   schedule:
     - cron: '30 6 * * *' # 09:30 Helsinki in summer, 08:30 in winter
     - cron: '30 8 * * *' # retry
     - cron: '30 10 * * *' # last retry
   workflow_dispatch:
+    inputs:
+      fail_on_error:
+        description: Fail the run (and email the owner) if a restaurant could not be collected
+        type: boolean
+        default: true
 
 permissions:
   contents: write
@@ -37,9 +46,13 @@ jobs:
       - run: npm ci
       - name: Collect today's menus
         id: collect
+        env:
+          EVENT: ${{ github.event_name }}
+          FAIL_INPUT: ${{ inputs.fail_on_error }}
+          SCHEDULE: ${{ github.event.schedule }}
         run: |
           flag=""
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ] || [ "${{ github.event.schedule }}" = "30 10 * * *" ]; then
+          if { [ "$EVENT" = "workflow_dispatch" ] && [ "$FAIL_INPUT" = "true" ]; } || [ "$SCHEDULE" = "30 10 * * *" ]; then
             flag="--fail-on-error"
           fi
           set +e

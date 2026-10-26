@@ -7,6 +7,8 @@
   "compatibility_date": "2026-10-26",
   "workers_dev": true,
   "observability": { "enabled": true },
+  // Starts the history collection on time (spec §6): GitHub's own schedule runs hours late.
+  "triggers": { "crons": ["30 6 * * *", "30 8 * * *", "30 10 * * *"] },
   // 60 MCP requests per minute per client (spec §5.2). If the plan doesn't offer the binding,
   // remove this block: src/worker/rate-limit.ts then counts per Worker instance instead.
   "ratelimits": [
