@@ -54,6 +54,21 @@ jobs:
           node-version: '24.x'
           cache: npm
       - run: npm ci
+      - name: Check the Cloudflare secrets
+        # A pasted token can pick up a line break or space, which Cloudflare reports only as
+        # "Authentication failed [code: 9106]". Says what is wrong without printing the value.
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          for name in CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID; do
+            value="${!name}"
+            if [ -z "$value" ]; then echo "::error::$name is empty"; exit 1; fi
+            case "$value" in
+              *[[:space:]]*) echo "::error::$name contains whitespace (length ${#value}); store it again"; exit 1 ;;
+            esac
+            echo "$name: ${#value} characters, no whitespace"
+          done
       - name: Deploy
         run: npx wrangler deploy
         env:
