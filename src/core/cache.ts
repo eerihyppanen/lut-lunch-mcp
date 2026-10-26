@@ -9,21 +9,25 @@ export type CacheEntry =
   | { ok: true; value: unknown; fetchedAt: number; failedAt?: number }
   | { ok: false; error: SourceError; fetchedAt: number };
 
-/** Storage behind CachedLoader. In memory for stdio; Workers Cache/KV in phase 3. */
+/**
+ * Storage behind CachedLoader. Asynchronous so a shared store (Workers Cache API, KV) can be
+ * plugged in later; stdio and the Worker use the in-memory one (phase 3 spec §5.1).
+ */
 export interface CacheStore {
-  get(key: string): CacheEntry | undefined;
-  set(key: string, entry: CacheEntry): void;
+  get(key: string): Promise<CacheEntry | undefined>;
+  set(key: string, entry: CacheEntry): Promise<void>;
 }
 
 export class MemoryCacheStore implements CacheStore {
   private readonly entries = new Map<string, CacheEntry>();
 
-  get(key: string): CacheEntry | undefined {
-    return this.entries.get(key);
+  get(key: string): Promise<CacheEntry | undefined> {
+    return Promise.resolve(this.entries.get(key));
   }
 
-  set(key: string, entry: CacheEntry): void {
+  set(key: string, entry: CacheEntry): Promise<void> {
     this.entries.set(key, entry);
+    return Promise.resolve();
   }
 }
 
@@ -52,44 +56,45 @@ export class CachedLoader {
   ) {}
 
   load<T>(key: string, freshMs: number, fn: () => Promise<T>): Promise<Loaded<T>> {
-    const t = this.now();
-    const entry = this.store.get(key);
-
-    if (entry?.ok && t - entry.fetchedAt < freshMs) {
-      return Promise.resolve({ value: entry.value as T, stale: false, fetchedAt: entry.fetchedAt });
-    }
-
+    // Registered before the first await, so concurrent callers share one lookup and request.
     const pending = this.inFlight.get(key);
     if (pending) return pending as Promise<Loaded<T>>;
-
-    if (entry?.ok) {
-      const recentlyFailed = entry.failedAt !== undefined && t - entry.failedAt < NEGATIVE_TTL_MS;
-      if (recentlyFailed && t - entry.fetchedAt < STALE_LIMIT_MS) {
-        return Promise.resolve({
-          value: entry.value as T,
-          stale: true,
-          fetchedAt: entry.fetchedAt,
-        });
-      }
-    } else if (entry && t - entry.fetchedAt < NEGATIVE_TTL_MS) {
-      return Promise.reject(entry.error);
-    }
-
-    const request = this.refresh(key, fn).finally(() => this.inFlight.delete(key));
+    const request = this.resolve(key, freshMs, fn).finally(() => this.inFlight.delete(key));
     this.inFlight.set(key, request);
     return request;
   }
 
-  private async refresh<T>(key: string, fn: () => Promise<T>): Promise<Loaded<T>> {
+  private async resolve<T>(key: string, freshMs: number, fn: () => Promise<T>): Promise<Loaded<T>> {
+    const entry = await this.store.get(key);
+    const t = this.now();
+
+    if (entry?.ok && t - entry.fetchedAt < freshMs) {
+      return { value: entry.value as T, stale: false, fetchedAt: entry.fetchedAt };
+    }
+    if (entry?.ok) {
+      const recentlyFailed = entry.failedAt !== undefined && t - entry.failedAt < NEGATIVE_TTL_MS;
+      if (recentlyFailed && t - entry.fetchedAt < STALE_LIMIT_MS) {
+        return { value: entry.value as T, stale: true, fetchedAt: entry.fetchedAt };
+      }
+    } else if (entry && t - entry.fetchedAt < NEGATIVE_TTL_MS) {
+      throw entry.error;
+    }
+    return this.refresh(key, entry, fn);
+  }
+
+  private async refresh<T>(
+    key: string,
+    previous: CacheEntry | undefined,
+    fn: () => Promise<T>,
+  ): Promise<Loaded<T>> {
     try {
       const value = await fn();
       const fetchedAt = this.now();
-      this.store.set(key, { ok: true, value, fetchedAt });
+      await this.store.set(key, { ok: true, value, fetchedAt });
       return { value, stale: false, fetchedAt };
     } catch (error) {
       const failure = toSourceError(error);
       const t = this.now();
-      const previous = this.store.get(key);
       const canServeStale = previous?.ok === true && t - previous.fetchedAt < STALE_LIMIT_MS;
       // Logged once per real upstream attempt; negative caching keeps this quiet in outages.
       console.error(
@@ -97,10 +102,10 @@ export class CachedLoader {
           (canServeStale ? ' (serving cached copy)' : ''),
       );
       if (previous?.ok && canServeStale) {
-        this.store.set(key, { ...previous, failedAt: t });
+        await this.store.set(key, { ...previous, failedAt: t });
         return { value: previous.value as T, stale: true, fetchedAt: previous.fetchedAt };
       }
-      this.store.set(key, { ok: false, error: failure, fetchedAt: t });
+      await this.store.set(key, { ok: false, error: failure, fetchedAt: t });
       throw failure;
     }
   }

@@ -2,6 +2,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   CachedLoader,
   MemoryCacheStore,
+  type CacheEntry,
+  type CacheStore,
   NEGATIVE_TTL_MS,
   STALE_LIMIT_MS,
 } from '../../src/core/cache.js';
@@ -16,6 +18,31 @@ beforeEach(() => {
 });
 
 describe('CachedLoader', () => {
+  it('shares one upstream request even when the store answers asynchronously', async () => {
+    const entries = new Map<string, CacheEntry>();
+    const slow: CacheStore = {
+      get: (k) => new Promise((r) => setTimeout(() => r(entries.get(k)), 5)),
+      set: (k, e) => (entries.set(k, e), Promise.resolve()),
+    };
+    const fn = vi.fn(() => Promise.resolve(42));
+    const l = new CachedLoader(slow, () => 0);
+    const [a, b] = await Promise.all([l.load('k', 1000, fn), l.load('k', 1000, fn)]);
+    expect([a.value, b.value]).toEqual([42, 42]);
+    expect(fn).toHaveBeenCalledTimes(1);
+    expect(await slow.get('k')).toMatchObject({ ok: true, value: 42 });
+  });
+
+  it('serves a fresh value from an asynchronous store without refetching', async () => {
+    const store: CacheStore = {
+      get: () => Promise.resolve({ ok: true, value: 7, fetchedAt: 0 }),
+      set: () => Promise.resolve(),
+    };
+    const fn = vi.fn(() => Promise.resolve(1));
+    const loaded = await new CachedLoader(store, () => 10).load('k', 1000, fn);
+    expect(loaded).toEqual({ value: 7, stale: false, fetchedAt: 0 });
+    expect(fn).not.toHaveBeenCalled();
+  });
+
   it('returns fresh values without refetching', async () => {
     const fn = vi.fn().mockResolvedValue(1);
     const l = new CachedLoader(new MemoryCacheStore(), now);
