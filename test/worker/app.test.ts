@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { MenuService, RestaurantDay } from '../../src/core/types.js';
 import { VERSION } from '../../src/version.js';
 import { createWorker } from '../../src/worker/app.js';
+import { RATE_LIMIT } from '../../src/worker/rate-limit.js';
 import { fakeService } from '../helpers/fakes.js';
 import { ORIGIN, initialize, mcpPost, toolCall } from '../helpers/worker.js';
 
@@ -139,10 +140,10 @@ describe('Worker other paths', () => {
 describe('Worker rate limit', () => {
   const list = { jsonrpc: '2.0', id: 2, method: 'tools/list' };
 
-  it('answers the 61st request in a minute from one client with 429', async () => {
+  it('answers requests over the limit in a minute from one client with 429', async () => {
     const w = worker();
     const ip = { 'CF-Connecting-IP': '1.2.3.4' };
-    for (let i = 0; i < 60; i++) expect((await mcpPost(w, list, ip)).status).toBe(200);
+    for (let i = 0; i < RATE_LIMIT; i++) expect((await mcpPost(w, list, ip)).status).toBe(200);
     const res = await mcpPost(w, list, ip);
     expect(res.status).toBe(429);
     expect(res.headers.get('Retry-After')).toBe('60');
@@ -153,7 +154,7 @@ describe('Worker rate limit', () => {
 
   it('counts requests without a client IP under one key (review focus)', async () => {
     const w = worker();
-    for (let i = 0; i < 60; i++) await mcpPost(w, list);
+    for (let i = 0; i < RATE_LIMIT; i++) await mcpPost(w, list);
     expect((await mcpPost(w, list)).status).toBe(429);
   });
 });

@@ -198,10 +198,12 @@ interface HistoryStore {
 
 ### 5.2 Rate limiting
 
-- Key: the `CF-Connecting-IP` header. Default limit: 60 MCP requests per minute per IP (a
-  conversation turn is typically 2–5 requests).
+- Key: the `CF-Connecting-IP` header. Limit: 600 MCP requests per minute per IP. Claude and
+  ChatGPT connectors call from their vendors' shared servers, so one IP carries every user of that
+  assistant (a conversation turn is typically 2–5 requests); 60, the first value, would have
+  blocked everyone at lunchtime (final review). The 100,000 requests/day cap is the real backstop.
 - Implementation step 1 verifies whether the Workers Rate Limiting binding (`ratelimits` in
-  `wrangler.jsonc`, `simple: { limit: 60, period: 60 }`) is available on the Free plan. If it
+  `wrangler.jsonc`, `simple: { limit: 600, period: 60 }`) is available on the Free plan. If it
   is, use it; otherwise an approximate per-instance counter (fixed one-minute windows, entries
   pruned as they expire) does the same job.
 - Over the limit: HTTP 429 with `Retry-After: 60` and a short JSON body.

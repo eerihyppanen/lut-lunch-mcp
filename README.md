@@ -27,7 +27,8 @@ https://lut-lunch-mcp.eerihyppanen-lut-lunch-mcp.workers.dev/mcp
 - **ChatGPT**: Settings → Apps & Connectors → Advanced settings → enable developer mode, then
   create a connector with the URL and no authentication.
 
-It allows 60 requests per minute per client, which a conversation never comes close to.
+It allows 600 requests per minute per client address. Claude and ChatGPT connectors share their
+vendors' servers, so that budget is shared by everyone using the same assistant.
 
 ## Install
 

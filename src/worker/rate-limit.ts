@@ -1,9 +1,11 @@
 import type { Env } from './env.js';
 
 // Per-client limit for /mcp (phase 3 spec §5.2): stops runaway clients from using up the free
-// plan's 100,000 requests a day. A conversation turn is typically 2–5 requests.
+// plan's 100,000 requests a day. Claude and ChatGPT connectors call from their vendors' shared
+// servers, so one IP carries many users (a conversation turn is typically 2–5 requests); the
+// limit is set for that crowd, and the daily cap is the real backstop.
 
-export const RATE_LIMIT = 60;
+export const RATE_LIMIT = 600;
 export const RATE_WINDOW_MS = 60_000;
 
 export interface RateLimiter {

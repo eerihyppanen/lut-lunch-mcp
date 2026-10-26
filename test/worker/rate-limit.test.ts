@@ -8,11 +8,12 @@ async function allowedCount(allow: () => Promise<boolean>, times: number): Promi
 }
 
 describe('createRateLimiter', () => {
-  it('allows 60 requests per minute per key, then denies until the window passes', async () => {
-    expect([RATE_LIMIT, RATE_WINDOW_MS]).toEqual([60, 60_000]);
+  it('allows 600 requests per minute per key, then denies until the window passes', async () => {
+    // Connectors call from their vendors' shared servers, so one key carries many users.
+    expect([RATE_LIMIT, RATE_WINDOW_MS]).toEqual([600, 60_000]);
     let t = 0;
     const limiter = createRateLimiter(() => t);
-    expect(await allowedCount(() => limiter.allow('a', {}), 61)).toBe(60);
+    expect(await allowedCount(() => limiter.allow('a', {}), RATE_LIMIT + 1)).toBe(RATE_LIMIT);
     expect(await limiter.allow('b', {})).toBe(true); // other clients are unaffected
     t += RATE_WINDOW_MS;
     expect(await limiter.allow('a', {})).toBe(true);
@@ -29,6 +30,6 @@ describe('createRateLimiter', () => {
     const limit = vi.fn(() => Promise.resolve({ success: true }));
     const limiter = createRateLimiter(() => 0);
     const env = { RATE_LIMITER: { limit } };
-    expect(await allowedCount(() => limiter.allow('a', env), 61)).toBe(60);
+    expect(await allowedCount(() => limiter.allow('a', env), RATE_LIMIT + 1)).toBe(RATE_LIMIT);
   });
 });
