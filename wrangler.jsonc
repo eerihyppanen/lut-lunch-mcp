@@ -7,4 +7,9 @@
   "compatibility_date": "2026-10-26",
   "workers_dev": true,
   "observability": { "enabled": true },
+  // 60 MCP requests per minute per client (spec §5.2). If the plan doesn't offer the binding,
+  // remove this block: src/worker/rate-limit.ts then counts per Worker instance instead.
+  "ratelimits": [
+    { "name": "RATE_LIMITER", "namespace_id": "1001", "simple": { "limit": 60, "period": 60 } },
+  ],
 }

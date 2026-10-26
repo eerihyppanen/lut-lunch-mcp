@@ -3,6 +3,7 @@ import { CfWorkerJsonSchemaValidator } from '@modelcontextprotocol/sdk/validatio
 import type { MenuService } from '../core/types.js';
 import { createServer } from '../mcp/server.js';
 import type { Env } from './env.js';
+import { RATE_WINDOW_MS, createRateLimiter } from './rate-limit.js';
 
 // The remote server (phase 3 spec §3): stateless Streamable HTTP MCP at /mcp, a short text page
 // at /, and the scheduled collection trigger. One service, and so one cache, per Worker instance.
@@ -43,6 +44,12 @@ const methodNotAllowed = () =>
     { status: 405, headers: { Allow: 'POST' } },
   );
 
+const rateLimited = () =>
+  Response.json(
+    { error: 'rate_limited' },
+    { status: 429, headers: { 'Retry-After': String(RATE_WINDOW_MS / 1000) } },
+  );
+
 /** Method and tool name for the log line; never the arguments. */
 function describe(body: unknown): { method?: string; tool?: string } {
   if (typeof body !== 'object' || body === null || Array.isArray(body)) return {};
@@ -57,6 +64,7 @@ export function createWorker(deps: WorkerDeps): LunchWorker {
   const log = deps.log ?? ((line: string) => console.log(line));
   const now = deps.now ?? Date.now;
   const jsonSchemaValidator = new CfWorkerJsonSchemaValidator();
+  const limiter = createRateLimiter(now);
 
   /** A POST to /mcp. */
   async function mcp(request: Request): Promise<Response> {
@@ -89,17 +97,22 @@ export function createWorker(deps: WorkerDeps): LunchWorker {
   }
 
   return {
-    fetch(request) {
+    async fetch(request, env) {
       const url = new URL(request.url);
       if (url.pathname === '/mcp') {
         // Stateless: no server-sent event stream (GET) and no sessions to end (DELETE). The
         // transport would answer GET with a stream that stays open, so only POST reaches it.
-        return request.method === 'POST' ? mcp(request) : Promise.resolve(methodNotAllowed());
+        if (request.method !== 'POST') return methodNotAllowed();
+        // Checked before the body is read, so a denied request costs almost nothing.
+        const client = request.headers.get('CF-Connecting-IP') ?? 'unknown';
+        if (!(await limiter.allow(client, env))) {
+          log(JSON.stringify({ status: 429 }));
+          return rateLimited();
+        }
+        return mcp(request);
       }
-      if (url.pathname === '/' && request.method === 'GET') {
-        return Promise.resolve(aboutPage(url.origin));
-      }
-      return Promise.resolve(new Response('Not found\n', { status: 404 }));
+      if (url.pathname === '/' && request.method === 'GET') return aboutPage(url.origin);
+      return new Response('Not found\n', { status: 404 });
     },
     scheduled() {
       // The collection trigger arrives in the next step (plan Task 8).

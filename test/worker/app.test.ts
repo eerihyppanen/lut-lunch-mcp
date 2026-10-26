@@ -135,3 +135,25 @@ describe('Worker other paths', () => {
     expect((await worker().fetch(new Request(`${ORIGIN}/nope`), {})).status).toBe(404);
   });
 });
+
+describe('Worker rate limit', () => {
+  const list = { jsonrpc: '2.0', id: 2, method: 'tools/list' };
+
+  it('answers the 61st request in a minute from one client with 429', async () => {
+    const w = worker();
+    const ip = { 'CF-Connecting-IP': '1.2.3.4' };
+    for (let i = 0; i < 60; i++) expect((await mcpPost(w, list, ip)).status).toBe(200);
+    const res = await mcpPost(w, list, ip);
+    expect(res.status).toBe(429);
+    expect(res.headers.get('Retry-After')).toBe('60');
+    expect(await res.json()).toEqual({ error: 'rate_limited' });
+    expect((await mcpPost(w, list, { 'CF-Connecting-IP': '5.6.7.8' })).status).toBe(200);
+    expect((await w.fetch(new Request(`${ORIGIN}/`), {})).status).toBe(200); // the page isn't limited
+  });
+
+  it('counts requests without a client IP under one key (review focus)', async () => {
+    const w = worker();
+    for (let i = 0; i < 60; i++) await mcpPost(w, list);
+    expect((await mcpPost(w, list)).status).toBe(429);
+  });
+});
