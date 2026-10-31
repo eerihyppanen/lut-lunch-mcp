@@ -1,0 +1,55 @@
+{
+  "schema": 1,
+  "date": "2026-10-31",
+  "collectedAt": "2026-10-31T06:31:24.152Z",
+  "collectorVersion": "0.3.1",
+  "restaurants": [
+    {
+      "id": "lut-buffet",
+      "status": {
+        "kind": "no_menu",
+        "reason": "public_holiday",
+        "holidayName": "All Saints' Day"
+      }
+    },
+    {
+      "id": "bistro-skinnarila",
+      "status": {
+        "kind": "no_menu",
+        "reason": "public_holiday",
+        "holidayName": "All Saints' Day"
+      }
+    },
+    {
+      "id": "yolo",
+      "status": {
+        "kind": "open",
+        "courses": [
+          {
+            "name": {
+              "fi": ".",
+              "en": null
+            },
+            "price": null,
+            "dishes": [
+              {
+                "name": {
+                  "fi": "Suljettu,Closed",
+                  "en": null
+                },
+                "tags": [],
+                "codes": [],
+                "allergens": {
+                  "coverage": "none",
+                  "contains": [],
+                  "mayContain": [],
+                  "assessed": []
+                }
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}
