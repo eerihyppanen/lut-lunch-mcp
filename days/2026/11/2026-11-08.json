@@ -1,0 +1,29 @@
+{
+  "schema": 1,
+  "date": "2026-11-08",
+  "collectedAt": "2026-11-08T06:31:17.939Z",
+  "collectorVersion": "0.3.1",
+  "restaurants": [
+    {
+      "id": "lut-buffet",
+      "status": {
+        "kind": "no_menu",
+        "reason": "weekend"
+      }
+    },
+    {
+      "id": "bistro-skinnarila",
+      "status": {
+        "kind": "no_menu",
+        "reason": "weekend"
+      }
+    },
+    {
+      "id": "yolo",
+      "status": {
+        "kind": "no_menu",
+        "reason": "weekend"
+      }
+    }
+  ]
+}
