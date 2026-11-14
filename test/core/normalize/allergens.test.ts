@@ -65,8 +65,10 @@ describe('powerestaAllergens', () => {
     });
   });
 
-  it('treats an empty list as full coverage with nothing contained', () => {
-    expect(powerestaAllergens([])).toMatchObject({ coverage: 'full', contains: [] });
+  it('treats an empty list as unknown, like a missing one', () => {
+    // Unknown is never safe: an empty list doesn't prove the dish is free of all 14.
+    expect(powerestaAllergens([])).toEqual(powerestaAllergens(undefined));
+    expect(powerestaAllergens([])).toMatchObject({ coverage: 'none', assessed: [] });
   });
 });
 

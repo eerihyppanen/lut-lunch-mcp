@@ -1,9 +1,18 @@
 import { describe, expect, it, vi } from 'vitest';
 import { SourceError, type HttpClient } from '../../../src/core/http.js';
+import { CachedLoader, MemoryCacheStore } from '../../../src/core/cache.js';
+import { toHistoryDay } from '../../../src/core/history/snapshot.js';
+import { LiveMenuService } from '../../../src/core/menu-service.js';
 import { createAalefSource, inferYear, parseAalefPage } from '../../../src/core/sources/aalef.js';
 import { fixtureText } from '../../helpers/fixtures.js';
 
 const html = fixtureText('aalef/2026-10-23.html');
+
+// What a closed Yolo might serve: the menu section is there, but no dated day headings.
+const CLOSED =
+  '<html><body><div class="pricing__section pricing__section--type-menu"><div class="pricing__rows">' +
+  '<div class="pricing__row pricing__row--type-subtitle"><h3>Suljettu joulun ajan</h3></div>' +
+  '</div></div></body></html>';
 
 describe('parseAalefPage', () => {
   it('parses listed days including Saturday', () => {
@@ -47,6 +56,10 @@ describe('parseAalefPage', () => {
     expect(dessert.tags).toEqual(['gluten_free', 'lactose_free', 'low_lactose']); // from row codes only
   });
 
+  it('reads a menu section without dated headings as nothing published', () => {
+    expect(parseAalefPage(CLOSED, '2026-12-23')).toEqual({ days: {}, coverage: null });
+  });
+
   it('throws when no day headings exist', () => {
     expect(() => parseAalefPage('<html><body><h3>Hello</h3></body></html>', '2026-10-23')).toThrow(
       SourceError,
@@ -59,6 +72,23 @@ describe('inferYear', () => {
     expect(inferYear(2, 1, '2026-12-30')).toBe('2027-01-02');
     expect(inferYear(30, 12, '2027-01-02')).toBe('2026-12-30');
     expect(inferYear(23, 10, '2026-10-23')).toBe('2026-10-23');
+  });
+});
+
+describe('a closed Yolo (review focus)', () => {
+  it('reports it as not published yet, recorded as nothing listed', async () => {
+    const at = new Date('2026-12-23T09:00:00Z');
+    const service = new LiveMenuService({
+      sources: [createAalefSource({ getText: () => Promise.resolve(CLOSED), getJson: vi.fn() })],
+      loader: new CachedLoader(new MemoryCacheStore(), () => at.getTime()),
+      now: () => at,
+    });
+    const rows = await service.getDays(['2026-12-23'], ['yolo']);
+    expect(rows[0]!.status).toEqual({ kind: 'no_menu', reason: 'not_published_yet' });
+    expect(toHistoryDay('2026-12-23', rows, 'T', 'x').restaurants[0]!.status).toEqual({
+      kind: 'no_menu',
+      reason: 'none_listed',
+    });
   });
 });
 

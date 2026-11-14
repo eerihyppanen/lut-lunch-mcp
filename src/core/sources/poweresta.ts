@@ -87,10 +87,14 @@ export function parsePowerestaDates(json: unknown): SourceResult {
   return { days, coverage };
 }
 
-/** Published menu slugs (e.g. "syksy"); the slug changes with the season. */
+/**
+ * Published menu slugs (e.g. "syksy"); the slug changes with the season. An empty list means
+ * nothing is published; any other shape is a source error, so a changed API isn't mistaken for
+ * "nothing published".
+ */
 export function pickSlugs(json: unknown): string[] {
   const parsed = Slugs.safeParse(json);
-  if (!parsed.success) return [];
+  if (!parsed.success) throw new SourceError('Poweresta: unexpected menus response', false);
   return parsed.data.map((m) => m.publishUrl ?? '').filter(Boolean);
 }
 

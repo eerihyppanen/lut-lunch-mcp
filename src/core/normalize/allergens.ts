@@ -95,12 +95,13 @@ function build(
 }
 
 /**
- * From a Poweresta row's English allergen list; undefined means the row has no list.
+ * From a Poweresta row's English allergen list; undefined or empty means the row has no list
+ * (an empty list doesn't prove the dish is free of all 14: unknown is never safe).
  * A name we can't map makes the whole list untrustworthy for "absent" answers, so the dish
  * keeps what it is known to contain but nothing counts as assessed.
  */
 export function powerestaAllergens(englishList: string[] | undefined): DishAllergens {
-  if (englishList === undefined) return build(new Set(), new Set(), new Set());
+  if (!englishList?.length) return build(new Set(), new Set(), new Set());
   const contains = new Set<Allergen>();
   const mayContain = new Set<Allergen>();
   let complete = true;

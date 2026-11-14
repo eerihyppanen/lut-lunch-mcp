@@ -96,7 +96,12 @@ export function parseAalefPage(html: string, today: string): SourceResult {
   });
 
   const dates = Object.keys(days).sort();
-  if (dates.length === 0) throw new SourceError('Aalef: no menu days found', false);
+  if (dates.length === 0) {
+    // A menu section without dated days is a closed Yolo (e.g. Christmas): nothing published.
+    // Without a menu section the page itself has changed, which is a source error.
+    if ($('.pricing__section--type-menu').length > 0) return { days: {}, coverage: null };
+    throw new SourceError('Aalef: no menu days found', false);
+  }
   return { days, coverage: { from: dates[0]!, through: dates[dates.length - 1]! } };
 }
 

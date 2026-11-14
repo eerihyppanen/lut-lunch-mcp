@@ -66,6 +66,15 @@ describe('pickSlugs', () => {
     expect(pickSlugs(menus)).toEqual(['syksy']);
     expect(pickSlugs([{ publishUrl: '' }, {}])).toEqual([]);
   });
+
+  it('reads an empty list as nothing published (review focus)', () => {
+    expect(pickSlugs([])).toEqual([]);
+  });
+
+  it('reports an unexpected response shape as a source error', () => {
+    expect(() => pickSlugs({ menus: [] })).toThrow('Poweresta: unexpected menus response');
+    expect(() => pickSlugs(['syksy'])).toThrow(SourceError);
+  });
 });
 
 describe('createPowerestaSource', () => {
