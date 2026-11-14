@@ -2,6 +2,31 @@
 
 All notable changes to this project. Versions follow [semantic versioning](https://semver.org).
 
+## 0.3.2 (unreleased)
+
+### Fixed
+
+- Yolo while closed (e.g. over Christmas): a page that still has its menu section but lists no
+  days now reads as "not published yet" and is recorded as nothing listed, instead of a source
+  error every day and a failing collection. A page without a menu section is still a source
+  error.
+- LUT Buffet: an unexpected response from the menu list is reported as a source error instead of
+  silently reading as "nothing published".
+- An empty allergen list from LUT Buffet's source counts as unknown, not as "checked and free of
+  all 14": unknown is never safe.
+- `stats.json` is validated more strictly (dates, their order, first and last date, duplicate
+  restaurants), and a restaurant or diet label this version doesn't know is skipped instead of
+  making the history unavailable. Statistics grouped by month can no longer hang on an invalid
+  date.
+- Remote server: a failing rate-limit binding no longer turns requests into errors.
+- Releases: the post-deploy smoke test checks that the new version is the one serving, and the
+  deploy workflow only deploys from `main` and version tags.
+
+### Changed
+
+- Dependencies updated within their ranges (MCP SDK 1.32.2 and development tools); the runtime
+  dependencies have no known vulnerabilities.
+
 ## 0.3.1 (2026-10-26)
 
 ### Fixed
