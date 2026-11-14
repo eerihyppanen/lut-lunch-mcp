@@ -6,10 +6,10 @@ All notable changes to this project. Versions follow [semantic versioning](https
 
 ### Fixed
 
-- Yolo while closed (e.g. over Christmas): a page that still has its menu section but lists no
-  days now reads as "not published yet" and is recorded as nothing listed, instead of a source
-  error every day and a failing collection. A page without a menu section is still a source
-  error.
+- Yolo while closed (e.g. over Christmas): a page that lists no serving days at all now reads as
+  "not published yet" and is recorded as nothing listed, instead of a source error every day and
+  a failing collection. Day headings whose dates can't be read, or a page without its menu
+  sections, are still a source error.
 - LUT Buffet: an unexpected response from the menu list is reported as a source error instead of
   silently reading as "nothing published".
 - An empty allergen list from LUT Buffet's source counts as unknown, not as "checked and free of
