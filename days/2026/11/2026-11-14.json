@@ -1,0 +1,95 @@
+{
+  "schema": 1,
+  "date": "2026-11-14",
+  "collectedAt": "2026-11-14T06:31:21.941Z",
+  "collectorVersion": "0.3.1",
+  "restaurants": [
+    {
+      "id": "lut-buffet",
+      "status": {
+        "kind": "no_menu",
+        "reason": "weekend"
+      }
+    },
+    {
+      "id": "bistro-skinnarila",
+      "status": {
+        "kind": "no_menu",
+        "reason": "weekend"
+      }
+    },
+    {
+      "id": "yolo",
+      "status": {
+        "kind": "open",
+        "courses": [
+          {
+            "name": {
+              "fi": "Kasvisruoka",
+              "en": "Vegetarian"
+            },
+            "price": null,
+            "dishes": [
+              {
+                "name": {
+                  "fi": "Kasvis-linssipihvit, perunaa, yrttikastike",
+                  "en": "Vegetable lentil patties, potatoes, harb sauce"
+                },
+                "tags": [
+                  "vegetarian",
+                  "gluten_free",
+                  "lactose_free",
+                  "low_lactose"
+                ],
+                "codes": [
+                  "L",
+                  "G",
+                  "+"
+                ],
+                "allergens": {
+                  "coverage": "none",
+                  "contains": [],
+                  "mayContain": [],
+                  "assessed": []
+                }
+              }
+            ]
+          },
+          {
+            "name": {
+              "fi": "Kotosia makuja",
+              "en": "Home made"
+            },
+            "price": null,
+            "dishes": [
+              {
+                "name": {
+                  "fi": "Makkaramix, perunaa, chilimajoneesia",
+                  "en": "Sausage mix, potatoes, chili mayonnaise"
+                },
+                "tags": [
+                  "gluten_free",
+                  "lactose_free",
+                  "low_lactose"
+                ],
+                "codes": [
+                  "L",
+                  "G",
+                  "MU"
+                ],
+                "allergens": {
+                  "coverage": "partial",
+                  "contains": [
+                    "egg"
+                  ],
+                  "mayContain": [],
+                  "assessed": []
+                }
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}
