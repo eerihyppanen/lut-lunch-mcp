@@ -73,9 +73,12 @@ export function datesInRange(from: string, to: string): string[] {
   return Array.from({ length: Math.max(0, count + 1) }, (_, i) => addDays(from, i));
 }
 
-/** Every month (YYYY-MM) the range touches, in order. Empty when `to` is before `from`. */
+/**
+ * Every month (YYYY-MM) the range touches, in order. Empty when `to` is before `from` or either
+ * isn't a valid date (a month like 13 would never reach the end month).
+ */
 export function monthsInRange(from: string, to: string): string[] {
-  if (to < from) return [];
+  if (!isValidIsoDate(from) || !isValidIsoDate(to) || to < from) return [];
   const months: string[] = [];
   let year = Number(from.slice(0, 4));
   let month = Number(from.slice(5, 7));

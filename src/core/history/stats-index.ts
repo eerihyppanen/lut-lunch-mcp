@@ -1,3 +1,4 @@
+import { isValidIsoDate } from '../calendar/dates.js';
 import { dishSearchText, foldText } from '../normalize/text.js';
 import {
   DIET_TAGS,
@@ -142,7 +143,19 @@ const isString = (v: unknown): v is string => typeof v === 'string';
 const isIndex = (v: unknown, below: number): v is number =>
   Number.isInteger(v) && (v as number) >= 0 && (v as number) < below;
 
-/** Validates and decodes stats.json in one pass; null when it is malformed. */
+const isKnown = <T extends string>(known: readonly T[], v: unknown): v is T =>
+  (known as readonly unknown[]).includes(v);
+
+// A real-looking date (month 01–12, day 01–31). Checked per day instead of a full calendar check,
+// which costs a Date object each and ~1.3 ms for three years (CPU budget); first and last dates
+// get the full check.
+const DATE_SHAPE = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
+
+/**
+ * Validates and decodes stats.json in one pass; null when it is malformed. Restaurants and diet
+ * tags this version doesn't know are skipped, so a newer collector adding one doesn't break
+ * older installs; anything else unexpected makes the file malformed.
+ */
 export function decodeStatsIndex(json: unknown): StatsIndex | null {
   if (typeof json !== 'object' || json === null) return null;
   const f = json as Partial<Record<keyof StatsFile, unknown>>;
@@ -152,9 +165,14 @@ export function decodeStatsIndex(json: unknown): StatsIndex | null {
   const { restaurants, tags, dishes, days } = f;
   if (!Array.isArray(restaurants) || !Array.isArray(tags)) return null;
   if (!Array.isArray(dishes) || !Array.isArray(days)) return null;
-  const ids = restaurants as unknown[];
-  if (!ids.every((id) => (RESTAURANT_IDS as readonly unknown[]).includes(id))) return null;
-  if (!(tags as unknown[]).every((t) => (DIET_TAGS as readonly unknown[]).includes(t))) return null;
+  const names = restaurants as unknown[];
+  if (!names.every(isString) || new Set(names).size !== names.length) return null;
+  if (!(tags as unknown[]).every(isString)) return null;
+  // Per file position: the restaurant id, or null for one this version doesn't know.
+  const ids = names.map((id) => (isKnown(RESTAURANT_IDS, id) ? id : null));
+  const knownTags = (tags as string[]).flatMap((tag, bit) =>
+    isKnown(DIET_TAGS, tag) ? [{ tag, bit }] : [],
+  );
 
   const decodedDishes: IndexedDish[] = [];
   for (const [i, d] of (dishes as unknown[]).entries()) {
@@ -162,7 +180,9 @@ export function decodeStatsIndex(json: unknown): StatsIndex | null {
     const [fi, en, bits, search, group] = d as unknown[];
     if (!isString(fi) || !(en === null || isString(en)) || !isString(search)) return null;
     if (!Number.isInteger(bits) || !isIndex(group, i + 1)) return null;
-    const dishTags = (tags as DietTag[]).filter((_, bit) => ((bits as number) & (1 << bit)) !== 0);
+    const dishTags: DietTag[] = [];
+    for (const { tag, bit } of knownTags)
+      if (((bits as number) & (1 << bit)) !== 0) dishTags.push(tag);
     decodedDishes.push({ fi, en, tags: dishTags, group, search });
   }
 
@@ -171,13 +191,17 @@ export function decodeStatsIndex(json: unknown): StatsIndex | null {
     if (!Array.isArray(day) || day.length !== 2) return null;
     const [date, entries] = day as unknown[];
     if (!isString(date) || !Array.isArray(entries) || entries.length > ids.length) return null;
+    // Days are unique and ascending, with real dates: statistics rely on it.
+    const previous = decodedDays.at(-1)?.date;
+    if (!DATE_SHAPE.test(date) || (previous !== undefined && date <= previous)) return null;
     const restaurantDays: IndexedRestaurantDay[] = [];
     for (const [pos, entry] of (entries as unknown[]).entries()) {
       if (entry === null) continue;
       if (!Array.isArray(entry)) return null;
       const [status, served] = entry as unknown[];
       if (!STATUSES.includes(status as StatusKind)) return null;
-      const id = ids[pos] as RestaurantId;
+      const id = ids[pos];
+      if (!id) continue; // a restaurant this version doesn't know
       if (served === undefined) {
         restaurantDays.push({ id, status: status as StatusKind });
         continue;
@@ -187,6 +211,11 @@ export function decodeStatsIndex(json: unknown): StatsIndex | null {
       restaurantDays.push({ id, status: status as StatusKind, dishes: served });
     }
     decodedDays.push({ date, restaurants: restaurantDays });
+  }
+  if (f.firstDate !== (decodedDays[0]?.date ?? null)) return null;
+  if (f.lastDate !== (decodedDays.at(-1)?.date ?? null)) return null;
+  if (f.firstDate !== null && !(isValidIsoDate(f.firstDate) && isValidIsoDate(f.lastDate!))) {
+    return null;
   }
 
   return {

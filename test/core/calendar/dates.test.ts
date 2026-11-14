@@ -34,6 +34,9 @@ describe('date arithmetic', () => {
     ]);
     expect(monthsInRange('2026-10-24', '2026-10-26')).toEqual(['2026-10']);
     expect(monthsInRange('2026-10-26', '2026-10-24')).toEqual([]);
+    // Invalid input must not loop forever (a month of 13 never reaches the end month).
+    expect(monthsInRange('2026-13-01', '2027-01-01')).toEqual([]);
+    expect(monthsInRange('2026-10-01', 'nope')).toEqual([]);
   });
 
   it('adds days across month and year ends', () => {

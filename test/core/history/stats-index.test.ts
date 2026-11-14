@@ -5,6 +5,8 @@ import {
   encodeStatsIndex,
 } from '../../../src/core/history/stats-index.js';
 import { dishSearchText, foldText } from '../../../src/core/normalize/text.js';
+import { DIET_TAGS } from '../../../src/core/types.js';
+import { fixtureJson } from '../../helpers/fixtures.js';
 import { fixtureHistoryDays } from '../../helpers/history-fixture.js';
 
 describe('buildStatsIndex', () => {
@@ -78,12 +80,43 @@ describe('stats.json encoding', () => {
     const variants: unknown[] = [
       'not an object',
       { ...good, days: 'nope' },
-      { ...good, restaurants: ['nowhere'] },
-      { ...good, tags: ['carnivore'] },
+      { ...good, restaurants: ['yolo', 'yolo', 'lut-buffet'] }, // duplicate restaurant
+      { ...good, days: [['2026-13-01', good.days[0]![1]], ...good.days.slice(1)] }, // bad date
+      { ...good, days: [...good.days].reverse() }, // not ascending
+      { ...good, days: [good.days[0], ...good.days] }, // duplicated day
+      { ...good, firstDate: '2026-10-01' }, // not the first day
       { ...good, dishes: [['Keitto', null, 0, 'keitto', 5]] }, // group points ahead
       { ...good, days: [['2026-10-19', [['open', [999]]]]] }, // unknown dish
       { ...good, days: [['2026-10-19', [['closed']]]] }, // unknown status
     ];
     for (const json of variants) expect(decodeStatsIndex(json)).toBeNull();
+  });
+
+  it('skips restaurants and diet tags this version does not know', async () => {
+    // A newer collector may add a restaurant or a diet label; older installs keep working.
+    const index = buildStatsIndex(await fixtureHistoryDays(), 'T');
+    const good = encodeStatsIndex(index);
+    const file = {
+      ...good,
+      restaurants: [...good.restaurants, 'new-place'],
+      tags: [...good.tags, 'halal'],
+      dishes: good.dishes.map((d, i) =>
+        i === 0 ? [d[0], d[1], d[2] | (1 << DIET_TAGS.length), d[3], d[4]] : d,
+      ),
+      days: good.days.map(([date, entries]) => [date, [...entries, ['open', [0]]]]),
+    };
+    expect(decodeStatsIndex(JSON.parse(JSON.stringify(file)))).toEqual(index);
+  });
+
+  it('decodes the stats.json the 0.3.1 collector wrote (review focus)', () => {
+    const index = decodeStatsIndex(fixtureJson('history/stats-2026-11-14.json'));
+    expect(index).not.toBeNull();
+    expect(index!.days).toHaveLength(22);
+    expect([index!.firstDate, index!.lastDate]).toEqual(['2026-10-24', '2026-11-14']);
+    expect(index!.days.at(-1)!.restaurants.map((r) => r.id)).toEqual([
+      'lut-buffet',
+      'bistro-skinnarila',
+      'yolo',
+    ]);
   });
 });

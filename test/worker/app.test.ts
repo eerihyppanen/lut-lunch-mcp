@@ -151,9 +151,13 @@ describe('Worker other paths', () => {
 
 describe('Worker rate limit', () => {
   const list = { jsonrpc: '2.0', id: 2, method: 'tools/list' };
+  // A fixed clock: 600 requests take about a second, and on the real clock a run that crossed a
+  // minute boundary would start a new window and let request 601 through.
+  const limited = () =>
+    createWorker({ serviceFor: () => fakeService([open]), log: () => {}, now: () => 0 });
 
   it('answers requests over the limit in a minute from one client with 429', async () => {
-    const w = worker();
+    const w = limited();
     const ip = { 'CF-Connecting-IP': '1.2.3.4' };
     for (let i = 0; i < RATE_LIMIT; i++) expect((await mcpPost(w, list, ip)).status).toBe(200);
     const res = await mcpPost(w, list, ip);
@@ -165,7 +169,7 @@ describe('Worker rate limit', () => {
   });
 
   it('counts requests without a client IP under one key (review focus)', async () => {
-    const w = worker();
+    const w = limited();
     for (let i = 0; i < RATE_LIMIT; i++) await mcpPost(w, list);
     expect((await mcpPost(w, list)).status).toBe(429);
   });
