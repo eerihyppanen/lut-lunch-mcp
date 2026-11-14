@@ -19,13 +19,27 @@ export interface RateLimiter {
  * Cloudflare location and is eventually consistent), so a request is denied when either says
  * no. The instance count can never be stricter than a perfect limit across all instances.
  */
-export function createRateLimiter(now: () => number): RateLimiter {
+export function createRateLimiter(
+  now: () => number,
+  log: (line: string) => void = () => {},
+): RateLimiter {
   let window = -1;
   const counts = new Map<string, number>();
 
+  /** The binding's answer; a failing binding counts as allowing, the instance count still applies. */
+  async function bindingAllows(key: string, env: Env): Promise<boolean> {
+    if (!env.RATE_LIMITER) return true;
+    try {
+      return (await env.RATE_LIMITER.limit({ key })).success;
+    } catch (error) {
+      log(`rate limit binding failed: ${error instanceof Error ? error.message : String(error)}`);
+      return true;
+    }
+  }
+
   return {
     async allow(key, env) {
-      if (env.RATE_LIMITER && !(await env.RATE_LIMITER.limit({ key })).success) return false;
+      if (!(await bindingAllows(key, env))) return false;
       const current = Math.floor(now() / RATE_WINDOW_MS);
       if (current !== window) {
         // A new window: earlier counts no longer matter, so memory stays bounded.

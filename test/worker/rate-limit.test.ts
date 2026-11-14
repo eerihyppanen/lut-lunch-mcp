@@ -26,6 +26,18 @@ describe('createRateLimiter', () => {
     expect(limit).toHaveBeenCalledWith({ key: 'a' });
   });
 
+  it('keeps serving and counting when the binding fails (review focus)', async () => {
+    const limit = vi.fn(() => Promise.reject(new Error('down')));
+    const lines: string[] = [];
+    const limiter = createRateLimiter(
+      () => 0,
+      (line) => lines.push(line),
+    );
+    const env = { RATE_LIMITER: { limit } };
+    expect(await allowedCount(() => limiter.allow('a', env), RATE_LIMIT + 1)).toBe(RATE_LIMIT);
+    expect(lines.join('\n')).toContain('rate limit binding failed: down');
+  });
+
   it('still counts per instance when the binding allows (it is approximate)', async () => {
     const limit = vi.fn(() => Promise.resolve({ success: true }));
     const limiter = createRateLimiter(() => 0);

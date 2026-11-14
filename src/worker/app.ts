@@ -69,7 +69,7 @@ export function createWorker(deps: WorkerDeps): LunchWorker {
   const log = deps.log ?? ((line: string) => console.log(line));
   const now = deps.now ?? Date.now;
   const jsonSchemaValidator = new CfWorkerJsonSchemaValidator();
-  const limiter = createRateLimiter(now);
+  const limiter = createRateLimiter(now, log);
   const fetchFn = deps.fetchFn ?? ((input, init) => fetch(input, init));
 
   /** A POST to /mcp. */
