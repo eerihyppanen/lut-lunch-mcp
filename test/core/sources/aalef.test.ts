@@ -60,6 +60,17 @@ describe('parseAalefPage', () => {
     expect(parseAalefPage(CLOSED, '2026-12-23')).toEqual({ days: {}, coverage: null });
   });
 
+  it('reports day headings it cannot read as a source error, not as closed (final review)', () => {
+    // The real page always has a second menu section ("Päivittäin tarjolla…"), so a changed
+    // date format must not pass for a closed restaurant.
+    const changed = html.replace(
+      /<h3>(Maanantai|Tiistai|Keskiviikko|Torstai|Perjantai|Lauantai|Sunnuntai) (\d{1,2})\.(\d{1,2})<\/h3>/g,
+      '<h3>$1 $2/$3</h3>',
+    );
+    expect(changed).not.toBe(html);
+    expect(() => parseAalefPage(changed, '2026-10-23')).toThrow(SourceError);
+  });
+
   it('throws when no day headings exist', () => {
     expect(() => parseAalefPage('<html><body><h3>Hello</h3></body></html>', '2026-10-23')).toThrow(
       SourceError,

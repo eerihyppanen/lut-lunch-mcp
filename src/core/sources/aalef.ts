@@ -11,6 +11,8 @@ import type { MenuSource, SourceResult } from './source.js';
 // serving days as "<h3>Perjantai 23.10</h3>" followed by product rows.
 const PAGE_URL = 'https://www.aalef.fi/';
 const DAY_HEADING = /(?:^|\s)(\d{1,2})\.(\d{1,2})(?:\.|\s|$)/;
+// A heading that names a weekday is a day heading, whether or not its date can be read.
+const WEEKDAY_HEADING = /^(maanantai|tiistai|keskiviikko|torstai|perjantai|lauantai|sunnuntai)\b/i;
 const LIGHT_SOUP = /inc\. light soup/i;
 
 /** The page shows "23.10" without a year: pick the year that puts the date closest to today. */
@@ -97,9 +99,14 @@ export function parseAalefPage(html: string, today: string): SourceResult {
 
   const dates = Object.keys(days).sort();
   if (dates.length === 0) {
-    // A menu section without dated days is a closed Yolo (e.g. Christmas): nothing published.
-    // Without a menu section the page itself has changed, which is a source error.
-    if ($('.pricing__section--type-menu').length > 0) return { days: {}, coverage: null };
+    // A closed Yolo (e.g. Christmas) keeps its menu sections but lists no days: nothing published.
+    // The page always has a permanent menu section, so a section alone proves nothing: if day
+    // headings are there but unreadable, or the sections are gone, the page itself has changed.
+    const menuSection = $('.pricing__section--type-menu').length > 0;
+    const dayHeadings = $('h3')
+      .toArray()
+      .some((h) => WEEKDAY_HEADING.test($(h).text().trim()));
+    if (menuSection && !dayHeadings) return { days: {}, coverage: null };
     throw new SourceError('Aalef: no menu days found', false);
   }
   return { days, coverage: { from: dates[0]!, through: dates[dates.length - 1]! } };
