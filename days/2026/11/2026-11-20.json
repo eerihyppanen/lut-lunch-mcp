@@ -1,0 +1,704 @@
+{
+  "schema": 1,
+  "date": "2026-11-20",
+  "collectedAt": "2026-11-20T06:31:22.725Z",
+  "collectorVersion": "0.3.2",
+  "restaurants": [
+    {
+      "id": "lut-buffet",
+      "status": {
+        "kind": "open",
+        "courses": [
+          {
+            "name": {
+              "fi": "Kasviskeitto",
+              "en": "Vegetarian soup"
+            },
+            "price": "2,30 / 5,10 / 8,20 / 9,50",
+            "dishes": [
+              {
+                "name": {
+                  "fi": "Chili-maissikeittoa",
+                  "en": "Chili and corn soup"
+                },
+                "tags": [
+                  "vegetarian",
+                  "gluten_free",
+                  "lactose_free",
+                  "low_lactose"
+                ],
+                "codes": [
+                  "G",
+                  "L"
+                ],
+                "allergens": {
+                  "coverage": "full",
+                  "contains": [
+                    "milk"
+                  ],
+                  "mayContain": [],
+                  "assessed": [
+                    "gluten",
+                    "milk",
+                    "egg",
+                    "fish",
+                    "crustaceans",
+                    "molluscs",
+                    "peanuts",
+                    "nuts",
+                    "soy",
+                    "celery",
+                    "mustard",
+                    "sesame",
+                    "sulphites",
+                    "lupin"
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "name": {
+              "fi": "Kasvislounas",
+              "en": "Vegetarian"
+            },
+            "price": "3,10 / 5,90 / 9,00 / 12,00",
+            "dishes": [
+              {
+                "name": {
+                  "fi": "Seitan-perunapannua",
+                  "en": "Seitan and potato stew"
+                },
+                "tags": [
+                  "vegan",
+                  "vegetarian",
+                  "milk_free",
+                  "lactose_free",
+                  "low_lactose"
+                ],
+                "codes": [
+                  "L",
+                  "M",
+                  "VE",
+                  "*"
+                ],
+                "allergens": {
+                  "coverage": "full",
+                  "contains": [
+                    "gluten",
+                    "soy"
+                  ],
+                  "mayContain": [],
+                  "assessed": [
+                    "gluten",
+                    "milk",
+                    "egg",
+                    "fish",
+                    "crustaceans",
+                    "molluscs",
+                    "peanuts",
+                    "nuts",
+                    "soy",
+                    "celery",
+                    "mustard",
+                    "sesame",
+                    "sulphites",
+                    "lupin"
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "name": {
+              "fi": "Lounas",
+              "en": "Lunch"
+            },
+            "price": "3,10 / 5,90 / 9,00 / 12,00",
+            "dishes": [
+              {
+                "name": {
+                  "fi": "Katkarapu-kookoskalaa",
+                  "en": "Saithe in shrimp and coconut sauce"
+                },
+                "tags": [
+                  "gluten_free",
+                  "lactose_free",
+                  "low_lactose"
+                ],
+                "codes": [
+                  "G",
+                  "L",
+                  "*"
+                ],
+                "allergens": {
+                  "coverage": "partial",
+                  "contains": [
+                    "milk",
+                    "fish",
+                    "crustaceans"
+                  ],
+                  "mayContain": [
+                    "peanuts",
+                    "nuts",
+                    "soy",
+                    "sesame"
+                  ],
+                  "assessed": []
+                }
+              },
+              {
+                "name": {
+                  "fi": "Perunaa",
+                  "en": "Boiled potatoes"
+                },
+                "tags": [
+                  "gluten_free",
+                  "milk_free",
+                  "lactose_free",
+                  "low_lactose"
+                ],
+                "codes": [
+                  "G",
+                  "L",
+                  "M",
+                  "*"
+                ],
+                "allergens": {
+                  "coverage": "none",
+                  "contains": [],
+                  "mayContain": [],
+                  "assessed": []
+                }
+              }
+            ]
+          },
+          {
+            "name": {
+              "fi": "Lounas",
+              "en": "Lunch"
+            },
+            "price": "3,10 / 5,90 / 9,00 / 12,00",
+            "dishes": [
+              {
+                "name": {
+                  "fi": "Broileritortillat",
+                  "en": "Chicken tortillas"
+                },
+                "tags": [
+                  "milk_free",
+                  "lactose_free",
+                  "low_lactose"
+                ],
+                "codes": [
+                  "L",
+                  "M"
+                ],
+                "allergens": {
+                  "coverage": "partial",
+                  "contains": [
+                    "gluten"
+                  ],
+                  "mayContain": [
+                    "soy"
+                  ],
+                  "assessed": []
+                }
+              },
+              {
+                "name": {
+                  "fi": "Valkosipulimajoneesi",
+                  "en": "Garlic mayonaise"
+                },
+                "tags": [
+                  "gluten_free",
+                  "milk_free",
+                  "lactose_free",
+                  "low_lactose"
+                ],
+                "codes": [
+                  "L",
+                  "M",
+                  "G"
+                ],
+                "allergens": {
+                  "coverage": "full",
+                  "contains": [
+                    "egg"
+                  ],
+                  "mayContain": [],
+                  "assessed": [
+                    "gluten",
+                    "milk",
+                    "egg",
+                    "fish",
+                    "crustaceans",
+                    "molluscs",
+                    "peanuts",
+                    "nuts",
+                    "soy",
+                    "celery",
+                    "mustard",
+                    "sesame",
+                    "sulphites",
+                    "lupin"
+                  ]
+                }
+              },
+              {
+                "name": {
+                  "fi": "Chipotle ananas-salsaa",
+                  "en": "Chipotle pine apple salsa"
+                },
+                "tags": [
+                  "vegan",
+                  "vegetarian",
+                  "gluten_free",
+                  "milk_free",
+                  "lactose_free",
+                  "low_lactose"
+                ],
+                "codes": [
+                  "L",
+                  "M",
+                  "G",
+                  "VE"
+                ],
+                "allergens": {
+                  "coverage": "full",
+                  "contains": [
+                    "sulphites"
+                  ],
+                  "mayContain": [
+                    "mustard"
+                  ],
+                  "assessed": [
+                    "gluten",
+                    "milk",
+                    "egg",
+                    "fish",
+                    "crustaceans",
+                    "molluscs",
+                    "peanuts",
+                    "nuts",
+                    "soy",
+                    "celery",
+                    "mustard",
+                    "sesame",
+                    "sulphites",
+                    "lupin"
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "bistro-skinnarila",
+      "status": {
+        "kind": "open",
+        "courses": [
+          {
+            "name": {
+              "fi": "BISTRON VEGE",
+              "en": "BISTRO VEGETARIAN LUNCH"
+            },
+            "price": "13,00/ STUDENT 3,10",
+            "dishes": [
+              {
+                "name": {
+                  "fi": "Kikherneitä ja kasviksia kormakastikkeessa",
+                  "en": "Chickpeas and vegetables with korma sauce"
+                },
+                "tags": [
+                  "vegetarian",
+                  "gluten_free",
+                  "lactose_free",
+                  "low_lactose"
+                ],
+                "codes": [
+                  "*",
+                  "A",
+                  "G",
+                  "ILM",
+                  "L",
+                  "VS"
+                ],
+                "allergens": {
+                  "coverage": "none",
+                  "contains": [],
+                  "mayContain": [],
+                  "assessed": []
+                }
+              },
+              {
+                "name": {
+                  "fi": "Tummaa riisiä",
+                  "en": "Rice"
+                },
+                "tags": [
+                  "vegan",
+                  "vegetarian",
+                  "gluten_free",
+                  "milk_free",
+                  "lactose_free",
+                  "low_lactose"
+                ],
+                "codes": [
+                  "*",
+                  "G",
+                  "L",
+                  "M",
+                  "Veg"
+                ],
+                "allergens": {
+                  "coverage": "none",
+                  "contains": [],
+                  "mayContain": [],
+                  "assessed": []
+                }
+              }
+            ]
+          },
+          {
+            "name": {
+              "fi": "BISTRON KOTIRUOKA",
+              "en": "BISTRO LUNCH"
+            },
+            "price": "13,00/STUDENT 3,10",
+            "dishes": [
+              {
+                "name": {
+                  "fi": "Ruotsalaista pyttipannua",
+                  "en": "Swedish hash"
+                },
+                "tags": [
+                  "gluten_free",
+                  "lactose_free",
+                  "low_lactose"
+                ],
+                "codes": [
+                  "A",
+                  "G",
+                  "L"
+                ],
+                "allergens": {
+                  "coverage": "none",
+                  "contains": [],
+                  "mayContain": [],
+                  "assessed": []
+                }
+              }
+            ]
+          },
+          {
+            "name": {
+              "fi": "BISTRON PAREMPI",
+              "en": "BISTRO SPECIAL LUNCH"
+            },
+            "price": "13,00/ STUDENT 5,90",
+            "dishes": [
+              {
+                "name": {
+                  "fi": "Possunleike keittiön tapaan",
+                  "en": "Own kitchen's pork schintzel"
+                },
+                "tags": [
+                  "milk_free",
+                  "lactose_free",
+                  "low_lactose"
+                ],
+                "codes": [
+                  "A",
+                  "L",
+                  "M"
+                ],
+                "allergens": {
+                  "coverage": "none",
+                  "contains": [],
+                  "mayContain": [],
+                  "assessed": []
+                }
+              },
+              {
+                "name": {
+                  "fi": "Maalaisranskalaisia",
+                  "en": "Country potato chips"
+                },
+                "tags": [
+                  "vegan",
+                  "vegetarian",
+                  "gluten_free",
+                  "milk_free",
+                  "lactose_free",
+                  "low_lactose"
+                ],
+                "codes": [
+                  "G",
+                  "L",
+                  "M",
+                  "Veg"
+                ],
+                "allergens": {
+                  "coverage": "none",
+                  "contains": [],
+                  "mayContain": [],
+                  "assessed": []
+                }
+              },
+              {
+                "name": {
+                  "fi": "Choronkastiketta",
+                  "en": "Choron sauce"
+                },
+                "tags": [
+                  "gluten_free",
+                  "lactose_free",
+                  "low_lactose"
+                ],
+                "codes": [
+                  "A",
+                  "G",
+                  "L"
+                ],
+                "allergens": {
+                  "coverage": "none",
+                  "contains": [],
+                  "mayContain": [],
+                  "assessed": []
+                }
+              }
+            ]
+          },
+          {
+            "name": {
+              "fi": "PIENI MAKEA",
+              "en": "DESSERT"
+            },
+            "price": "STUDENT 0,90",
+            "dishes": [
+              {
+                "name": {
+                  "fi": "Kirsikka-kaurapiirakkaa",
+                  "en": "Cherry and oats pie"
+                },
+                "tags": [
+                  "lactose_free",
+                  "low_lactose"
+                ],
+                "codes": [
+                  "A",
+                  "L"
+                ],
+                "allergens": {
+                  "coverage": "none",
+                  "contains": [],
+                  "mayContain": [],
+                  "assessed": []
+                }
+              },
+              {
+                "name": {
+                  "fi": "Vaniljakastiketta",
+                  "en": "Vanilla custard"
+                },
+                "tags": [
+                  "gluten_free",
+                  "lactose_free",
+                  "low_lactose"
+                ],
+                "codes": [
+                  "A",
+                  "G",
+                  "L"
+                ],
+                "allergens": {
+                  "coverage": "none",
+                  "contains": [],
+                  "mayContain": [],
+                  "assessed": []
+                }
+              }
+            ]
+          },
+          {
+            "name": {
+              "fi": "Menu",
+              "en": "Menu"
+            },
+            "price": null,
+            "dishes": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "yolo",
+      "status": {
+        "kind": "open",
+        "courses": [
+          {
+            "name": {
+              "fi": "Kasvisruoka",
+              "en": "Vegetarian"
+            },
+            "price": null,
+            "dishes": [
+              {
+                "name": {
+                  "fi": "Kasvis-jalapeno nugetit, aiolia",
+                  "en": "Vegetable jalapeno nuggets, garlic sauce"
+                },
+                "tags": [
+                  "vegan",
+                  "vegetarian",
+                  "gluten_free",
+                  "milk_free",
+                  "lactose_free",
+                  "low_lactose"
+                ],
+                "codes": [
+                  "M",
+                  "G",
+                  "V",
+                  "SO"
+                ],
+                "allergens": {
+                  "coverage": "partial",
+                  "contains": [
+                    "soy"
+                  ],
+                  "mayContain": [],
+                  "assessed": []
+                }
+              }
+            ]
+          },
+          {
+            "name": {
+              "fi": "Kotoisia makuja",
+              "en": "Home made"
+            },
+            "price": null,
+            "dishes": [
+              {
+                "name": {
+                  "fi": "Lihapullat, pippuri-kermakastike, perunaa",
+                  "en": "Meatballs, creamy pepper sauce, potatoes"
+                },
+                "tags": [
+                  "lactose_free",
+                  "low_lactose"
+                ],
+                "codes": [
+                  "L",
+                  "SO",
+                  "SI",
+                  "MU"
+                ],
+                "allergens": {
+                  "coverage": "partial",
+                  "contains": [
+                    "egg",
+                    "soy",
+                    "mustard"
+                  ],
+                  "mayContain": [],
+                  "assessed": []
+                }
+              }
+            ]
+          },
+          {
+            "name": {
+              "fi": "Keitto",
+              "en": "Soup"
+            },
+            "price": null,
+            "dishes": [
+              {
+                "name": {
+                  "fi": "Lohikeitto",
+                  "en": "Salmon soup"
+                },
+                "tags": [
+                  "gluten_free",
+                  "lactose_free",
+                  "low_lactose"
+                ],
+                "codes": [
+                  "L",
+                  "G",
+                  "+"
+                ],
+                "allergens": {
+                  "coverage": "none",
+                  "contains": [],
+                  "mayContain": [],
+                  "assessed": []
+                }
+              }
+            ]
+          },
+          {
+            "name": {
+              "fi": "Salaattibuffet",
+              "en": "Salad buffet"
+            },
+            "price": null,
+            "dishes": [
+              {
+                "name": {
+                  "fi": "Talon salaatti",
+                  "en": "Salad buffet"
+                },
+                "tags": [],
+                "codes": [
+                  "+"
+                ],
+                "allergens": {
+                  "coverage": "none",
+                  "contains": [],
+                  "mayContain": [],
+                  "assessed": []
+                }
+              }
+            ]
+          },
+          {
+            "name": {
+              "fi": "Jälkiruoka",
+              "en": "Dessert"
+            },
+            "price": null,
+            "dishes": [
+              {
+                "name": {
+                  "fi": "Sitruunakiisseliä ja kermavaahtoa",
+                  "en": "Lemon kissel and whipped cream"
+                },
+                "tags": [
+                  "gluten_free",
+                  "lactose_free",
+                  "low_lactose"
+                ],
+                "codes": [
+                  "L",
+                  "G"
+                ],
+                "allergens": {
+                  "coverage": "none",
+                  "contains": [],
+                  "mayContain": [],
+                  "assessed": []
+                }
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}
