@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "date": "2026-11-27",
-  "collectedAt": "2026-11-27T06:31:12.717Z",
+  "collectedAt": "2026-11-27T08:31:40.336Z",
   "collectorVersion": "0.3.2",
   "restaurants": [
     {
@@ -573,8 +573,158 @@
     {
       "id": "yolo",
       "status": {
-        "kind": "no_menu",
-        "reason": "none_listed"
+        "kind": "open",
+        "courses": [
+          {
+            "name": {
+              "fi": "Kasvisruoka",
+              "en": "Vegetarian"
+            },
+            "price": null,
+            "dishes": [
+              {
+                "name": {
+                  "fi": "BBQ härkäpapu hot dogs, vegaanimajoneesia, lohkoperunaa",
+                  "en": "BBQ broad bean dogs, vegan mayo, lohkoperunaa"
+                },
+                "tags": [
+                  "vegan",
+                  "vegetarian",
+                  "milk_free",
+                  "lactose_free",
+                  "low_lactose"
+                ],
+                "codes": [
+                  "M",
+                  "V"
+                ],
+                "allergens": {
+                  "coverage": "none",
+                  "contains": [],
+                  "mayContain": [],
+                  "assessed": []
+                }
+              }
+            ]
+          },
+          {
+            "name": {
+              "fi": "Kotoisia makuja",
+              "en": "Home made"
+            },
+            "price": null,
+            "dishes": [
+              {
+                "name": {
+                  "fi": "Hot dogs, chipotle ranch majoneesia, lohkoperunaa",
+                  "en": "Hot dogs, chipotle ranch mayo, sliced potatoes"
+                },
+                "tags": [
+                  "milk_free",
+                  "lactose_free",
+                  "low_lactose"
+                ],
+                "codes": [
+                  "M",
+                  "MU"
+                ],
+                "allergens": {
+                  "coverage": "partial",
+                  "contains": [
+                    "egg"
+                  ],
+                  "mayContain": [],
+                  "assessed": []
+                }
+              }
+            ]
+          },
+          {
+            "name": {
+              "fi": "Keitto",
+              "en": "Soup"
+            },
+            "price": null,
+            "dishes": [
+              {
+                "name": {
+                  "fi": "Lohikeitto",
+                  "en": "Salmon soup"
+                },
+                "tags": [
+                  "gluten_free",
+                  "lactose_free",
+                  "low_lactose"
+                ],
+                "codes": [
+                  "L",
+                  "G"
+                ],
+                "allergens": {
+                  "coverage": "none",
+                  "contains": [],
+                  "mayContain": [],
+                  "assessed": []
+                }
+              }
+            ]
+          },
+          {
+            "name": {
+              "fi": "Salaattibuffet",
+              "en": "Salad buffet"
+            },
+            "price": null,
+            "dishes": [
+              {
+                "name": {
+                  "fi": "Talon salaatti (sis. kevytkeitto)",
+                  "en": "Salad buffet (Inc. light soup)"
+                },
+                "tags": [],
+                "codes": [
+                  "+"
+                ],
+                "allergens": {
+                  "coverage": "none",
+                  "contains": [],
+                  "mayContain": [],
+                  "assessed": []
+                }
+              }
+            ]
+          },
+          {
+            "name": {
+              "fi": "Jälkiruoka",
+              "en": "Dessert"
+            },
+            "price": null,
+            "dishes": [
+              {
+                "name": {
+                  "fi": "Raparperikiisseli ja kermavaahtoa",
+                  "en": "Rhubarb kissel and whipped cream"
+                },
+                "tags": [
+                  "gluten_free",
+                  "lactose_free",
+                  "low_lactose"
+                ],
+                "codes": [
+                  "L",
+                  "G"
+                ],
+                "allergens": {
+                  "coverage": "none",
+                  "contains": [],
+                  "mayContain": [],
+                  "assessed": []
+                }
+              }
+            ]
+          }
+        ]
       }
     }
   ]
