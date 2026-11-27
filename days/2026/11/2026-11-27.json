@@ -1,0 +1,581 @@
+{
+  "schema": 1,
+  "date": "2026-11-27",
+  "collectedAt": "2026-11-27T06:31:12.717Z",
+  "collectorVersion": "0.3.2",
+  "restaurants": [
+    {
+      "id": "lut-buffet",
+      "status": {
+        "kind": "open",
+        "courses": [
+          {
+            "name": {
+              "fi": "Kasviskeitto",
+              "en": "Vegetarian soup"
+            },
+            "price": "2,30 / 5,10 / 8,20 / 9,50",
+            "dishes": [
+              {
+                "name": {
+                  "fi": "Kasvisbouillabaissea",
+                  "en": null
+                },
+                "tags": [
+                  "vegan",
+                  "vegetarian",
+                  "gluten_free",
+                  "milk_free",
+                  "lactose_free",
+                  "low_lactose"
+                ],
+                "codes": [
+                  "G",
+                  "L",
+                  "M",
+                  "VE",
+                  "*"
+                ],
+                "allergens": {
+                  "coverage": "full",
+                  "contains": [
+                    "sulphites"
+                  ],
+                  "mayContain": [],
+                  "assessed": [
+                    "gluten",
+                    "milk",
+                    "egg",
+                    "fish",
+                    "crustaceans",
+                    "molluscs",
+                    "peanuts",
+                    "nuts",
+                    "soy",
+                    "celery",
+                    "mustard",
+                    "sesame",
+                    "sulphites",
+                    "lupin"
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "name": {
+              "fi": "Kasvislounas",
+              "en": "Vegetarian"
+            },
+            "price": "3,10 / 5,90 / 9,00 / 12,00",
+            "dishes": [
+              {
+                "name": {
+                  "fi": "Chow Mein kasviskastiketta",
+                  "en": "Chow Mein vegetable stew"
+                },
+                "tags": [
+                  "vegan",
+                  "vegetarian",
+                  "milk_free",
+                  "lactose_free",
+                  "low_lactose"
+                ],
+                "codes": [
+                  "L",
+                  "M",
+                  "VE",
+                  "*"
+                ],
+                "allergens": {
+                  "coverage": "full",
+                  "contains": [
+                    "gluten",
+                    "soy"
+                  ],
+                  "mayContain": [],
+                  "assessed": [
+                    "gluten",
+                    "milk",
+                    "egg",
+                    "fish",
+                    "crustaceans",
+                    "molluscs",
+                    "peanuts",
+                    "nuts",
+                    "soy",
+                    "celery",
+                    "mustard",
+                    "sesame",
+                    "sulphites",
+                    "lupin"
+                  ]
+                }
+              },
+              {
+                "name": {
+                  "fi": "Nuudeleita",
+                  "en": "Noodles"
+                },
+                "tags": [
+                  "vegetarian",
+                  "milk_free",
+                  "lactose_free",
+                  "low_lactose"
+                ],
+                "codes": [
+                  "L",
+                  "M"
+                ],
+                "allergens": {
+                  "coverage": "full",
+                  "contains": [
+                    "gluten",
+                    "egg"
+                  ],
+                  "mayContain": [
+                    "milk",
+                    "crustaceans",
+                    "soy",
+                    "celery"
+                  ],
+                  "assessed": [
+                    "gluten",
+                    "milk",
+                    "egg",
+                    "fish",
+                    "crustaceans",
+                    "molluscs",
+                    "peanuts",
+                    "nuts",
+                    "soy",
+                    "celery",
+                    "mustard",
+                    "sesame",
+                    "sulphites",
+                    "lupin"
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "name": {
+              "fi": "Lounas",
+              "en": "Lunch"
+            },
+            "price": "3,10 / 5,90 / 9,00 / 12,00",
+            "dishes": [
+              {
+                "name": {
+                  "fi": "Kebab-perunapannua",
+                  "en": "Kebab and potato hash"
+                },
+                "tags": [
+                  "gluten_free",
+                  "milk_free",
+                  "lactose_free",
+                  "low_lactose"
+                ],
+                "codes": [
+                  "G",
+                  "L",
+                  "M",
+                  "*"
+                ],
+                "allergens": {
+                  "coverage": "full",
+                  "contains": [],
+                  "mayContain": [],
+                  "assessed": [
+                    "gluten",
+                    "milk",
+                    "egg",
+                    "fish",
+                    "crustaceans",
+                    "molluscs",
+                    "peanuts",
+                    "nuts",
+                    "soy",
+                    "celery",
+                    "mustard",
+                    "sesame",
+                    "sulphites",
+                    "lupin"
+                  ]
+                }
+              },
+              {
+                "name": {
+                  "fi": "BBQ majoneesia",
+                  "en": "BBQ mayonnaise"
+                },
+                "tags": [
+                  "gluten_free",
+                  "milk_free",
+                  "lactose_free",
+                  "low_lactose"
+                ],
+                "codes": [
+                  "L",
+                  "M",
+                  "G"
+                ],
+                "allergens": {
+                  "coverage": "full",
+                  "contains": [
+                    "egg",
+                    "soy",
+                    "celery",
+                    "mustard"
+                  ],
+                  "mayContain": [],
+                  "assessed": [
+                    "gluten",
+                    "milk",
+                    "egg",
+                    "fish",
+                    "crustaceans",
+                    "molluscs",
+                    "peanuts",
+                    "nuts",
+                    "soy",
+                    "celery",
+                    "mustard",
+                    "sesame",
+                    "sulphites",
+                    "lupin"
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "name": {
+              "fi": "Lounas",
+              "en": "Lunch"
+            },
+            "price": "3,10 / 5,90 / 9,00 / 12,00",
+            "dishes": [
+              {
+                "name": {
+                  "fi": "Pinaattista uunikalaa",
+                  "en": "Saithe in spinach sauce"
+                },
+                "tags": [
+                  "gluten_free",
+                  "lactose_free",
+                  "low_lactose"
+                ],
+                "codes": [
+                  "G",
+                  "L",
+                  "*"
+                ],
+                "allergens": {
+                  "coverage": "full",
+                  "contains": [
+                    "milk",
+                    "fish"
+                  ],
+                  "mayContain": [
+                    "molluscs"
+                  ],
+                  "assessed": [
+                    "gluten",
+                    "milk",
+                    "egg",
+                    "fish",
+                    "crustaceans",
+                    "molluscs",
+                    "peanuts",
+                    "nuts",
+                    "soy",
+                    "celery",
+                    "mustard",
+                    "sesame",
+                    "sulphites",
+                    "lupin"
+                  ]
+                }
+              },
+              {
+                "name": {
+                  "fi": "Perunaa",
+                  "en": "Boiled potatoes"
+                },
+                "tags": [
+                  "gluten_free",
+                  "milk_free",
+                  "lactose_free",
+                  "low_lactose"
+                ],
+                "codes": [
+                  "G",
+                  "L",
+                  "M",
+                  "*"
+                ],
+                "allergens": {
+                  "coverage": "none",
+                  "contains": [],
+                  "mayContain": [],
+                  "assessed": []
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "bistro-skinnarila",
+      "status": {
+        "kind": "open",
+        "courses": [
+          {
+            "name": {
+              "fi": "BISTRON VEGE",
+              "en": "BISTRO VEGETARIAN LUNCH"
+            },
+            "price": "13,00/ STUDENT 3,10",
+            "dishes": [
+              {
+                "name": {
+                  "fi": "Punajuuri-vuohenjuustolasagnettea",
+                  "en": "Beetroot and goat cheese lasagnette"
+                },
+                "tags": [
+                  "vegetarian",
+                  "lactose_free",
+                  "low_lactose"
+                ],
+                "codes": [
+                  "*",
+                  "A",
+                  "ILM",
+                  "L"
+                ],
+                "allergens": {
+                  "coverage": "none",
+                  "contains": [],
+                  "mayContain": [],
+                  "assessed": []
+                }
+              }
+            ]
+          },
+          {
+            "name": {
+              "fi": "BISTRON KOTIRUOKA",
+              "en": null
+            },
+            "price": "BUFFET 13,00 STUDENT 3,10",
+            "dishes": [
+              {
+                "name": {
+                  "fi": "Jauhelihapyöryköitä",
+                  "en": "Meatballs"
+                },
+                "tags": [
+                  "milk_free",
+                  "lactose_free",
+                  "low_lactose"
+                ],
+                "codes": [
+                  "*",
+                  "A",
+                  "L",
+                  "M"
+                ],
+                "allergens": {
+                  "coverage": "none",
+                  "contains": [],
+                  "mayContain": [],
+                  "assessed": []
+                }
+              },
+              {
+                "name": {
+                  "fi": "Pippurikastiketta",
+                  "en": "Pepper sauce"
+                },
+                "tags": [
+                  "gluten_free",
+                  "lactose_free",
+                  "low_lactose"
+                ],
+                "codes": [
+                  "*",
+                  "A",
+                  "G",
+                  "ILM",
+                  "L"
+                ],
+                "allergens": {
+                  "coverage": "none",
+                  "contains": [],
+                  "mayContain": [],
+                  "assessed": []
+                }
+              },
+              {
+                "name": {
+                  "fi": "Keitettyjä perunoita",
+                  "en": "Boiled potatoes"
+                },
+                "tags": [
+                  "vegan",
+                  "vegetarian",
+                  "gluten_free",
+                  "milk_free",
+                  "lactose_free",
+                  "low_lactose"
+                ],
+                "codes": [
+                  "*",
+                  "A",
+                  "G",
+                  "ILM",
+                  "L",
+                  "M",
+                  "Veg"
+                ],
+                "allergens": {
+                  "coverage": "none",
+                  "contains": [],
+                  "mayContain": [],
+                  "assessed": []
+                }
+              }
+            ]
+          },
+          {
+            "name": {
+              "fi": "BISTRON PAREMPI",
+              "en": "BISTRO SPECIAL LUNCH"
+            },
+            "price": "13,00/ STUDENT 5,90",
+            "dishes": [
+              {
+                "name": {
+                  "fi": "Broilerin fileetä",
+                  "en": "Chicken fillet"
+                },
+                "tags": [
+                  "gluten_free",
+                  "milk_free",
+                  "lactose_free",
+                  "low_lactose"
+                ],
+                "codes": [
+                  "G",
+                  "L",
+                  "M"
+                ],
+                "allergens": {
+                  "coverage": "none",
+                  "contains": [],
+                  "mayContain": [],
+                  "assessed": []
+                }
+              },
+              {
+                "name": {
+                  "fi": "Bearnaisea",
+                  "en": "Béarnaise sauce"
+                },
+                "tags": [
+                  "gluten_free"
+                ],
+                "codes": [
+                  "A",
+                  "G"
+                ],
+                "allergens": {
+                  "coverage": "none",
+                  "contains": [],
+                  "mayContain": [],
+                  "assessed": []
+                }
+              },
+              {
+                "name": {
+                  "fi": "Lohkoperunoita",
+                  "en": "Potato wedges"
+                },
+                "tags": [
+                  "vegan",
+                  "vegetarian",
+                  "gluten_free",
+                  "milk_free",
+                  "lactose_free",
+                  "low_lactose"
+                ],
+                "codes": [
+                  "G",
+                  "ILM",
+                  "L",
+                  "M",
+                  "Veg"
+                ],
+                "allergens": {
+                  "coverage": "none",
+                  "contains": [],
+                  "mayContain": [],
+                  "assessed": []
+                }
+              }
+            ]
+          },
+          {
+            "name": {
+              "fi": "PIENI MAKEA",
+              "en": "DESSERT"
+            },
+            "price": "STUDENT 0,90",
+            "dishes": [
+              {
+                "name": {
+                  "fi": "Passionhedelmä-jogurttipannacottaa",
+                  "en": "Passionfruit and yoghurt Panna Cotta"
+                },
+                "tags": [
+                  "gluten_free",
+                  "lactose_free",
+                  "low_lactose"
+                ],
+                "codes": [
+                  "A",
+                  "G",
+                  "L"
+                ],
+                "allergens": {
+                  "coverage": "none",
+                  "contains": [],
+                  "mayContain": [],
+                  "assessed": []
+                }
+              }
+            ]
+          },
+          {
+            "name": {
+              "fi": "Menu",
+              "en": "Menu"
+            },
+            "price": null,
+            "dishes": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "yolo",
+      "status": {
+        "kind": "no_menu",
+        "reason": "none_listed"
+      }
+    }
+  ]
+}
